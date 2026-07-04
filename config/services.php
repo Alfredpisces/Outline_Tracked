@@ -27,4 +27,13 @@ return [
         'token' => env('AI_PRECHECKER_TOKEN'),
         'timeout' => env('AI_PRECHECKER_TIMEOUT', 10),
     ],
+
+    // NEW: Google Gemini API Configuration
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+    ],
+
+    'anthropic' => [
+    'api_key' => env('ANTHROPIC_API_KEY'),
+],
 ];

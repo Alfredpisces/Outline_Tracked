@@ -12,11 +12,17 @@ class Student extends Model
 
     protected $fillable = [
         'lrn',
+        'school_year',      // Added this field
         'first_name',
         'last_name',
         'middle_name',
+        'extension_name',
+        'gender',
+        'birth_date',
         'grade_level',
         'section',
+        'curriculum',
+        'status',
         'last_synced_at',
     ];
 

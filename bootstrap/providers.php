@@ -1,7 +1,6 @@
 <?php
 
-use App\Providers\AppServiceProvider;
-
 return [
-    AppServiceProvider::class,
+    App\Providers\AppServiceProvider::class,
+    Maatwebsite\Excel\ExcelServiceProvider::class, // Ensure this line is here
 ];

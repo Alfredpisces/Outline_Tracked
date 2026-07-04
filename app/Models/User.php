@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use App\Models\Role;
+use App\Models\Permission;
+use App\Models\UserPermission;
 
 class User extends Authenticatable
 {
@@ -19,10 +22,16 @@ class User extends Authenticatable
         'last_name',
         'email',
         'password',
-        'role',
         'current_tier',
         'is_active',
+        'last_login_ip',
+        'last_login_at',
+        'suspicious_activity',
         'email_verified_at',
+        'deped_rank',
+        'department',
+        'is_verified',
+        'verified_by',
     ];
 
     protected $hidden = [
@@ -37,6 +46,11 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'role_user')->withTimestamps();
     }
 
     public function permissions(): BelongsToMany
@@ -87,9 +101,6 @@ class User extends Authenticatable
         return trim($this->first_name.' '.$this->last_name);
     }
 
-    /**
-     * Accepts a best-effort 'First Last' string and splits only on the first whitespace boundary.
-     */
     public function setNameAttribute(string $value): void
     {
         $trimmed = trim($value);
@@ -110,7 +121,7 @@ class User extends Authenticatable
 
     public function hasPermissionTo(string $actionName): bool
     {
-        if ($this->role === 'admin') {
+        if ($this->roles()->where('name', 'admin')->exists()) {
             return true;
         }
 

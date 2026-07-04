@@ -23,13 +23,14 @@ class IncidentReport extends Model
         'counselor_notes',
         'resolved_at',
         'principal_action',
+        'evidence_path', // Added this to allow the file path to be saved
     ];
 
     protected function casts(): array
     {
         return [
             'incident_date' => 'date',
-            'resolved_at' => 'datetime',
+            'resolved_at'   => 'datetime',
         ];
     }
 

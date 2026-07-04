@@ -1,63 +1,52 @@
 <x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-6" :status="session('status')" />
-
-    <div class="mb-6">
-        <div class="flex items-center gap-3">
+    <div class="mb-8 text-center">
+        <div class="flex justify-center mb-4">
+            <!-- TRACKED SVG LOGO -->
             <div
-                class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white">
-                TE
-            </div>
-            <div>
-                <div class="text-lg font-semibold text-slate-900">TrackEd</div>
-                <div class="text-xs text-slate-500">Permission-Based Access (PBAC)</div>
+                class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 shadow-[0_0_20px_rgba(99,102,241,0.5)] p-3">
+                <svg class="w-full h-full text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
             </div>
         </div>
 
-        <p class="mt-4 te-muted">
-            Use your DepEd email to sign in. Accounts are provisioned by your School Administrator.
-        </p>
+        <!-- DYNAMIC SCHOOL TITLE -->
+        <h1 class="text-2xl font-black text-white">{{ \App\Models\Setting::get('school_name', 'TrackEd System') }}</h1>
+        <p class="text-[10px] font-bold text-indigo-300 uppercase tracking-[0.2em] mt-1">Access Management</p>
     </div>
 
     <form method="POST" action="{{ route('login') }}" class="space-y-5">
         @csrf
 
-        <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('DepEd Email')" class="te-label" />
-            <x-text-input id="email" class="te-input mt-1" type="email" name="email" :value="old('email')" required
-                autofocus autocomplete="username" placeholder="name@deped.edu.ph" />
-            <p class="te-help">Example: name@deped.edu.ph</p>
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <x-input-label for="login" value="Email or Employee ID"
+                class="text-slate-300 text-xs font-bold uppercase" />
+            <div class="relative mt-1">
+                <x-text-input id="login"
+                    class="w-full bg-slate-800/50 border-white/10 text-white placeholder-slate-500 rounded-xl focus:border-indigo-500"
+                    type="text" name="login" :value="old('login')" required autofocus
+                    placeholder="name@deped.edu.ph" />
+            </div>
+            <x-input-error :messages="$errors->get('login')" class="mt-1 text-red-400" />
         </div>
 
-        <!-- Password -->
         <div>
-            <x-input-label for="password" :value="__('Password')" class="te-label" />
-
-            <x-text-input id="password" class="te-input mt-1" type="password" name="password" required
-                autocomplete="current-password" placeholder="••••••••" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+            <x-input-label for="password" value="Password" class="text-slate-300 text-xs font-bold uppercase" />
+            <div class="relative mt-1">
+                <x-text-input id="password"
+                    class="w-full bg-slate-800/50 border-white/10 text-white placeholder-slate-500 rounded-xl focus:border-indigo-500"
+                    type="password" name="password" required placeholder="••••••••" />
+            </div>
         </div>
 
-        <!-- Remember Me -->
-        <div class="flex items-center justify-between">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox"
-                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
+        <button
+            class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+            {{ __('Log in') }}
+        </button>
 
-            <span class="text-sm text-slate-500">
-                Need access? Contact your School ICT Coordinator.
-            </span>
-        </div>
-
-        <div class="pt-2">
-            <x-primary-button class="w-full justify-center">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
+        <p class="text-center text-[10px] text-slate-500">Need help? Contact your School ICT Coordinator.</p>
     </form>
 </x-guest-layout>

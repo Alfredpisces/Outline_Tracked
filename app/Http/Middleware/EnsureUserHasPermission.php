@@ -16,6 +16,12 @@ class EnsureUserHasPermission
             abort(403);
         }
 
+        // ADD THIS BYPASS: This allows Admins to pass regardless of specific permissions
+        if ($user->role === 'admin') {
+            return $next($request);
+        }
+
+        // Existing logic for non-admin users
         foreach ($permissions as $permission) {
             if ($user->hasPermissionTo($permission)) {
                 return $next($request);

@@ -27,6 +27,11 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
         });
+Schema::table('users', function (Blueprint $table) {
+        $table->string('last_login_ip', 45)->nullable();
+        $table->timestamp('last_login_at')->nullable();
+        $table->boolean('suspicious_activity')->default(false);
+    });
 
         // Breeze default tables for password resets and sessions
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -52,3 +57,4 @@ return new class extends Migration
         Schema::dropIfExists('sessions');
     }
 };
+

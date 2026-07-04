@@ -28,4 +28,13 @@ class Permission extends Model
                     ->withPivot('granted_at')
                     ->withTimestamps();
     }
+
+    /**
+     * Get the roles that include this permission.
+     */
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'permission_role')
+                    ->withTimestamps();
+    }
 }
