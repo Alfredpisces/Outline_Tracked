@@ -11,7 +11,7 @@ class GlobalCopilot extends Component
 {
     public $input = '';
     public $messages = [];
-    public $quickTopics = []; // NEW: Array to hold dynamic topics
+    public $quickTopics = [];
 
     public function mount()
     {
@@ -20,38 +20,40 @@ class GlobalCopilot extends Component
             'text' => "👋 Hello! I'm your TrackEd System Guide. How can I help you navigate the platform today?"
         ];
 
-        // NEW: Check the user's role and assign the correct quick topics
+        // DYNAMIC ROLE-BASED QUICK TOPICS MAPPED TO ACTUAL CAPABILITIES
         $user = Auth::user();
         $role = strtolower($user->role ?? 'guest');
 
         if ($role === 'teacher') {
             $this->quickTopics = [
-                ['icon' => '📚', 'label' => 'How do I create or submit a DLL?'],
-                ['icon' => '🛡️', 'label' => 'How do I file a behavior report?'],
-                ['icon' => '📊', 'label' => 'How does the Principal review my DLL?']
+                ['icon' => '📚', 'label' => 'How do I create and submit my Daily Lesson Log?'],
+                ['icon' => '🛡️', 'label' => 'How do I log a student behavioral incident?'],
+                ['icon' => '🎓', 'label' => 'How do I upload a Professional Growth certificate?']
             ];
         } elseif ($role === 'school_head') {
             $this->quickTopics = [
-                ['icon' => '✅', 'label' => 'How do I review a teacher\'s DLL?'],
-                ['icon' => '📈', 'label' => 'How do I check faculty compliance?'],
-                ['icon' => '✍️', 'label' => 'How do I send technical assistance?']
+                ['icon' => '✅', 'label' => 'How do I review and return a teacher\'s DLL?'],
+                ['icon' => '📋', 'label' => 'How do I input Classroom Observation (COT) ratings?'],
+                ['icon' => '🧠', 'label' => 'How do I use the DSS Command Center?']
+            ];
+        } elseif ($role === 'counselor') {
+            $this->quickTopics = [
+                ['icon' => '🤝', 'label' => 'How do I log a Counseling Intervention?'],
+                ['icon' => '⚠️', 'label' => 'How do I view unresolved major incidents?']
             ];
         } elseif ($role === 'admin') {
             $this->quickTopics = [
-                ['icon' => '👥', 'label' => 'How do I manage user accounts?'],
-                ['icon' => '📦', 'label' => 'How do I manage classroom inventory?'],
-                ['icon' => '⚙️', 'label' => 'How do I configure system settings?']
+                ['icon' => '👥', 'label' => 'How do I add a new user or change roles?'],
+                ['icon' => '📦', 'label' => 'How do I register a new Asset/Inventory item?'],
+                ['icon' => '⚙️', 'label' => 'How do I manage system settings?']
             ];
         } else {
-            // Fallback for counselors, staff, or unassigned users
             $this->quickTopics = [
-                ['icon' => '❓', 'label' => 'I need help navigating the system.'],
-                ['icon' => '🛡️', 'label' => 'How do I view behavior reports?']
+                ['icon' => '❓', 'label' => 'I need help navigating the system.']
             ];
         }
     }
 
-    // UPDATED: Now receives the exact string directly from the button
     public function sendTopic($question)
     {
         $this->input = $question;
@@ -62,30 +64,33 @@ class GlobalCopilot extends Component
     {
         if (trim($this->input) === '') return;
 
-        // 1. Save user message to chat
         $userMessage = $this->input;
         $this->messages[] = ['role' => 'user', 'text' => $userMessage];
-        $this->input = ''; // Clear input field
+        $this->input = '';
 
-        // 2. Identify the User and their Role
         $user = Auth::user();
         $role = $user->role ?? 'guest';
         $name = $user->name ?? 'User';
 
-        // 3. THE "BOUNCER" SYSTEM PROMPT
+        // THE "EXPERT BRAIN" SYSTEM PROMPT
         $systemPrompt = "You are the 'TrackEd System Guide', an official IT support and customer service assistant for the TrackEd School Management System.
         You are currently assisting: {$name}. Their official system role is: [" . strtoupper($role) . "].
 
+        SYSTEM KNOWLEDGE BASE (HOW TRACKED WORKS):
+        - INSTRUCTIONAL (DLL & COT): Teachers draft daily log entries. They submit the Weekly Log to the School Head (Reviewer). The School Head checks it or returns it with 'Needs Revision'. School Heads also conduct Classroom Observations (COT) and input ratings.
+        - BEHAVIORAL (Discipline): Teachers log 'Incident Reports'. If it's a major offense, the student is ineligible for Good Moral certificates until resolved. Counselors review Incident Reports and log 'Counseling Interventions'. The Principal takes final action.
+        - INVENTORY (Assets): Admins register Assets (Projectors, PCs) and manage their life cycle based on condition and expiry dates. Teachers can borrow items, which creates an 'Asset Transaction'.
+        - DSS (Command Center): An AI-powered dashboard exclusively for the School Head. It ranks teachers needing technical assistance, maps behavioral incident hotspots, and recommends asset procurement.
+
         STRICT BOUNDARIES & RULES:
-        1. SYSTEM SCOPE ONLY: You exist ONLY to help with TrackEd. If the user asks about general knowledge, history, science, coding, or anything outside of navigating the school system, you MUST politely refuse and state your purpose.
-        2. STRICT DATA CONFIDENTIALITY: You must respect role clearances.
-           - If a TEACHER asks about Admin data, School Head DSS Rankings, or Counselor behavioral records, refuse them by saying: 'Due to data privacy protocols, you do not have clearance to view or inquire about this module.'
-           - If anyone asks for specific student passwords or sensitive records, refuse immediately.
-        3. EXPLAINING WORKFLOWS: You CAN explain how system processes work. For example, if a teacher asks how the DLL module works, explain the step-by-step workflow (Teacher drafts -> Submits -> School Head reviews -> Approves/Returns).
+        1. SCOPE ONLY: If the user asks about general knowledge, history, science, coding, or anything outside of navigating the school system, politely refuse.
+        2. DATA CONFIDENTIALITY: Respect role clearances.
+           - If a TEACHER asks about Admin settings, DSS Rankings, or another teacher's COT score, refuse: 'Due to data privacy protocols, you do not have clearance for this module.'
+           - Refuse any requests for passwords or specific student records.
+        3. BE HELPFUL & CONCISE: Answer questions based ONLY on the System Knowledge Base provided above. Give step-by-step guidance.
 
-        Keep your answers concise, professional, friendly, and formatted nicely.";
+        Keep your answers professional, friendly, and formatted nicely.";
 
-        // 4. Send to Gemini 2.5 Flash API
         try {
             $apiKey = env('GEMINI_API_KEY');
 
@@ -106,7 +111,7 @@ class GlobalCopilot extends Component
                     ['parts' => [['text' => $systemPrompt . "\n\nUser Question: " . $userMessage]]]
                 ],
                 'generationConfig' => [
-                    'temperature' => 0.1,
+                    'temperature' => 0.1, // Strict adherence to our knowledge base
                 ]
             ]);
 
@@ -123,7 +128,6 @@ class GlobalCopilot extends Component
             $this->messages[] = ['role' => 'ai', 'text' => '⚠️ System Offline: ' . $e->getMessage()];
         }
 
-        // Tell the frontend to scroll to the bottom of the chat
         $this->dispatch('chat-updated');
     }
 

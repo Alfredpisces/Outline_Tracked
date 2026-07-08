@@ -51,13 +51,23 @@
             <header
                 class="sticky top-0 z-30 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 flex items-center justify-between px-4 py-3 lg:px-8 shrink-0">
 
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
+
                     <button @click="sidebarOpen = true"
                         class="p-2 -ml-2 text-slate-500 rounded-xl lg:hidden hover:bg-blue-50 hover:text-blue-600 focus:outline-none transition-colors">
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
+                    </button>
+
+                    <button @click="window.history.back()"
+                        class="lg:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100/50 backdrop-blur-md border border-slate-200/60 rounded-full hover:bg-slate-200/60 hover:text-slate-800 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-slate-300 active:scale-95 shadow-sm">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        <span>Back</span>
                     </button>
 
                     <div
@@ -164,7 +174,8 @@
                     <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-white">🤖</div>
                     <div>
                         <h4 class="text-white font-black text-sm">System Guide</h4>
-                        <p class="text-indigo-200 text-[10px] font-bold uppercase tracking-widest">TrackEd Assistant</p>
+                        <p class="text-indigo-200 text-[10px] font-bold uppercase tracking-widest">TrackEd Assistant
+                        </p>
                     </div>
                 </div>
                 <button onclick="toggleTrackEdChat()" type="button"

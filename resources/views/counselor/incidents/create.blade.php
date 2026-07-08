@@ -35,9 +35,9 @@
                         1
                     </div>
                     <div>
-                        <h3 class="text-2xl font-bold text-slate-900 tracking-tight">Identify Student Record</h3>
-                        <p class="text-sm font-medium text-slate-500 mt-1">Search the LIS staging database to attach the
-                            behavioral record.</p>
+                        <h3 class="text-2xl font-bold text-slate-900 tracking-tight">Identify Involved Student(s)</h3>
+                        <p class="text-sm font-medium text-slate-500 mt-1">Search the LIS staging database. You can
+                            select multiple students for a group incident.</p>
                     </div>
                 </div>
 
@@ -68,35 +68,19 @@
                     </div>
                 </div>
 
-                <div id="selected-student-card"
-                    class="hidden mt-6 p-6 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row items-center justify-between w-full lg:w-3/4 mx-auto shadow-sm">
-                    <div class="flex items-center w-full">
-                        <div
-                            class="w-12 h-12 rounded-full bg-emerald-200 text-emerald-700 flex items-center justify-center flex-shrink-0 mr-4">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7"></path>
-                            </svg>
-                        </div>
-                        <div class="flex-grow">
-                            <div class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">Target
-                                Acquired</div>
-                            <div class="text-xl font-black text-slate-900" id="selected-name">Student Name</div>
-                            <div class="text-sm font-medium text-slate-600" id="selected-lrn">LRN: 0000</div>
-                        </div>
-                        <button type="button" onclick="resetSearch()"
-                            class="px-4 py-2 bg-white rounded-lg text-sm text-slate-600 font-bold border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm ml-4 whitespace-nowrap">
-                            Change Student
-                        </button>
-                    </div>
+                {{-- DYNAMIC LIST OF SELECTED STUDENTS --}}
+                <div id="selected-students-container" class="mt-6 w-full lg:w-3/4 mx-auto space-y-3 empty:hidden">
                 </div>
             </div>
 
             <div id="violation-form-section"
                 class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-10 opacity-0 transition-opacity duration-500">
-                <form action="{{ route('counselor.incidents.store') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('counselor.incidents.store') }}" method="POST" enctype="multipart/form-data"
+                    id="main-incident-form">
                     @csrf
-                    <input type="hidden" name="lrn" id="form-lrn-input">
+
+                    {{-- Hidden inputs for selected students will be injected here by JS --}}
+                    <div id="hidden-lrn-inputs"></div>
 
                     <div class="flex items-center mb-8 pb-6 border-b border-slate-100">
                         <div
@@ -123,9 +107,19 @@
                                 <label
                                     class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">Offense
                                     Category</label>
-                                <input type="text" name="offense_type" placeholder="e.g. Insubordination, Vandalism"
-                                    required
+                                {{-- THE SMART COMBOBOX --}}
+                                <input list="offenses-list" name="offense_type"
+                                    placeholder="Select or type an offense..." required autocomplete="off"
                                     class="block w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm shadow-sm">
+                                <datalist id="offenses-list">
+                                    <option value="Physical Altercation / Fighting">
+                                    <option value="Bullying / Harassment">
+                                    <option value="Vandalism / Property Damage">
+                                    <option value="Insubordination / Disrespect">
+                                    <option value="Cheating / Academic Dishonesty">
+                                    <option value="Theft">
+                                    <option value="Possession of Contraband">
+                                </datalist>
                             </div>
 
                             <div>
@@ -143,8 +137,7 @@
                             </div>
 
                             <div>
-                                <label
-                                    class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">Date
+                                <label class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">Date
                                     of Occurrence</label>
                                 <input type="date" name="incident_date" required
                                     class="block w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm shadow-sm">
@@ -154,8 +147,8 @@
                                 <label
                                     class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">Factual
                                     Narrative</label>
-                                <textarea name="narrative" rows="4"
-                                    placeholder="Provide a highly factual, objective account of the behavior..." required
+                                <textarea name="narrative" rows="4" placeholder="Provide a highly factual, objective account of the behavior..."
+                                    required
                                     class="block w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 sm:text-sm shadow-sm resize-none"></textarea>
                             </div>
 
@@ -180,6 +173,7 @@
                                     class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 block">Initial
                                     Action Taken</label>
                                 <select name="intervention_type" id="intervention-select" required
+                                    onchange="handleInterventionChange()"
                                     class="block w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm shadow-sm transition-colors">
                                     <option value="" disabled selected>Select primary response...</option>
                                     <option value="on_the_spot">On-the-Spot Correction (Teacher/LSG)</option>
@@ -190,7 +184,16 @@
                                     <option value="suspension">Suspension (Requires Administration)</option>
                                     <option value="external_escalation">Escalated to External Authorities (DSWD/PNP)
                                     </option>
+                                    <option value="other" class="font-bold text-indigo-600">Other (Specify Custom
+                                        Action...)</option>
                                 </select>
+                            </div>
+
+                            {{-- THE ESCAPE HATCH: Custom Intervention (Hidden by default) --}}
+                            <div id="intervention-custom-container" class="hidden">
+                                <input type="text" name="intervention_custom" id="intervention-custom-input"
+                                    placeholder="Specify custom intervention..."
+                                    class="block w-full px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm shadow-sm placeholder-indigo-300">
                             </div>
 
                             <div class="grid grid-cols-2 gap-4">
@@ -229,12 +232,8 @@
 
                     <div
                         class="pt-6 mt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-end">
-                        <button type="button" onclick="resetSearch()"
-                            class="w-full sm:w-auto px-6 py-3 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors mr-0 sm:mr-3 mb-3 sm:mb-0">
-                            Cancel
-                        </button>
-                        <button type="submit"
-                            class="w-full sm:w-auto inline-flex justify-center items-center px-8 py-3 bg-slate-900 hover:bg-rose-600 text-white rounded-lg text-sm font-bold shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500">
+                        <button type="submit" id="submit-btn" disabled
+                            class="w-full sm:w-auto inline-flex justify-center items-center px-8 py-3 bg-slate-900 hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4">
@@ -250,7 +249,24 @@
     </div>
 
     <script>
-        // --- DYNAMIC FORM LOGIC ---
+        // --- MULTI-SELECT STATE ---
+        let selectedStudents = [];
+
+        function handleInterventionChange() {
+            const intervention = document.getElementById('intervention-select').value;
+            const customContainer = document.getElementById('intervention-custom-container');
+            const customInput = document.getElementById('intervention-custom-input');
+
+            if (intervention === 'other') {
+                customContainer.classList.remove('hidden');
+                customInput.setAttribute('required', 'required');
+            } else {
+                customContainer.classList.add('hidden');
+                customInput.removeAttribute('required');
+                customInput.value = ''; // clear it out
+            }
+        }
+
         function handleSeverityChange() {
             const severity = document.getElementById('severity-select').value;
             const intervention = document.getElementById('intervention-select');
@@ -260,37 +276,27 @@
             const scheduledAtInput = document.getElementById('scheduled-at-input');
 
             if (severity === 'critical') {
-                // Auto-fill and lock critical selections
                 intervention.value = 'external_escalation';
                 status.value = 'turned_over';
+                handleInterventionChange(); // Hide custom input if it was open
 
-                // Hide follow-up calendar as it's out of counselor hands
                 followupContainer.style.opacity = '0';
                 setTimeout(() => {
                     followupContainer.style.display = 'none';
                 }, 300);
-                scheduledAtInput.value = ''; // Clear any existing date
+                scheduledAtInput.value = '';
 
-                // Prompt for legal documentation details
                 notes.placeholder =
-                    'Enter the external turnover details (e.g., Police blotter number, DSWD receiving officer, Barangay blotter)...';
+                    'Enter the external turnover details (e.g., Police blotter number, DSWD receiving officer)...';
             } else {
-                // Restore form for normal internal tracking
                 followupContainer.style.display = 'block';
                 setTimeout(() => {
                     followupContainer.style.opacity = '1';
                 }, 10);
-
-                // Reset text placeholder
                 notes.placeholder = "Document the student's response, agreements made, and specific next steps...";
 
-                // Only reset dropdowns if they were locked to critical statuses
-                if (status.value === 'turned_over') {
-                    status.value = 'in_intervention';
-                }
-                if (intervention.value === 'external_escalation') {
-                    intervention.value = '';
-                }
+                if (status.value === 'turned_over') status.value = 'in_intervention';
+                if (intervention.value === 'external_escalation') intervention.value = '';
             }
         }
 
@@ -312,11 +318,10 @@
             if (input.length >= 2) {
                 dropdown.classList.remove('hidden');
                 resultsList.innerHTML =
-                    '<div class="px-6 py-8 text-sm font-bold text-rose-500 text-center flex flex-col justify-center items-center"><svg class="animate-spin h-6 w-6 text-rose-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Querying Database...</div>';
+                    '<div class="px-6 py-8 text-sm font-bold text-rose-500 text-center">Querying Database...</div>';
 
                 try {
                     const searchUrl = "{{ route('counselor.incidents.search_lis') }}?q=" + encodeURIComponent(input);
-
                     const response = await fetch(searchUrl, {
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
@@ -324,72 +329,101 @@
                         }
                     });
 
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.error || `Server returned status: ${response.status}`);
-                    }
-
+                    if (!response.ok) throw new Error("Server Error");
                     const data = await response.json();
 
                     if (data.length > 0) {
                         resultsList.innerHTML = data.map(student => {
-                            const firstName = student.first_name || '';
-                            const lastName = student.last_name || '';
-                            const fullName = `${lastName}, ${firstName}`.trim();
-                            const initial = lastName.charAt(0).toUpperCase() || 'S';
+                                const fullName = `${student.last_name || ''}, ${student.first_name || ''}`.trim();
+                                // Don't show students already selected
+                                if (selectedStudents.some(s => s.lrn === student.lrn)) return '';
 
-                            return `
-                                <button type="button" onclick="selectStudent('${student.lrn}', '${fullName.replace(/'/g, "\\'")}')" class="w-full text-left px-5 py-4 hover:bg-slate-50 flex items-center transition-colors border-b border-slate-100 last:border-0 group focus:outline-none">
-                                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-slate-100 border border-slate-200 group-hover:bg-rose-100 group-hover:text-rose-600 flex items-center justify-center text-slate-600 font-bold text-lg mr-4">${initial}</div>
+                                return `
+                                <button type="button" onclick="addStudent('${student.lrn}', '${fullName.replace(/'/g, "\\'")}')" class="w-full text-left px-5 py-4 hover:bg-slate-50 flex items-center transition-colors border-b border-slate-100 last:border-0 group focus:outline-none">
                                     <div>
-                                        <div class="text-sm font-bold text-slate-900 group-hover:text-rose-600">${fullName || 'No Name Provided'}</div>
-                                        <div class="text-xs font-medium text-slate-500 mt-0.5">LRN: ${student.lrn} <span class="mx-2 text-slate-300">|</span> Grade ${student.grade_level || 'N/A'} - ${student.section || 'N/A'}</div>
+                                        <div class="text-sm font-bold text-slate-900 group-hover:text-rose-600">${fullName || 'No Name'}</div>
+                                        <div class="text-xs font-medium text-slate-500 mt-0.5">LRN: ${student.lrn}</div>
                                     </div>
                                 </button>
                             `;
-                        }).join('');
+                            }).join('') ||
+                            '<div class="px-6 py-8 text-sm font-medium text-slate-500 text-center">Student already selected.</div>';
                     } else {
                         resultsList.innerHTML =
-                            '<div class="px-6 py-8 text-sm font-medium text-slate-500 text-center">No behavioral records matched your query.</div>';
+                            '<div class="px-6 py-8 text-sm font-medium text-slate-500 text-center">No records matched.</div>';
                     }
                 } catch (error) {
                     resultsList.innerHTML =
-                        `<div class="px-6 py-6 text-sm font-bold text-red-500 text-left bg-red-50 m-2 border border-red-200 rounded-lg">System Exception: <span class="font-normal block mt-1">${error.message}</span></div>`;
+                        `<div class="px-6 py-6 text-sm text-red-500 text-center">Search failed.</div>`;
                 }
             } else {
                 dropdown.classList.add('hidden');
             }
         }
 
-        function selectStudent(lrn, name) {
+        // Add a student to the array and UI
+        function addStudent(lrn, name) {
             document.getElementById('search-results-dropdown').classList.add('hidden');
             document.getElementById('lis-search-input').value = '';
-            document.getElementById('lis-search-input').parentElement.classList.add('hidden');
+            document.getElementById('lis-search-input').focus();
 
-            document.getElementById('selected-name').innerText = name;
-            document.getElementById('selected-lrn').innerText = 'LRN: ' + lrn;
-            document.getElementById('selected-student-card').classList.remove('hidden');
-
-            document.getElementById('form-lrn-input').value = lrn;
-
-            const formSection = document.getElementById('violation-form-section');
-            formSection.classList.remove('hidden');
-            setTimeout(() => {
-                formSection.classList.remove('opacity-0');
-            }, 50);
+            if (!selectedStudents.some(s => s.lrn === lrn)) {
+                selectedStudents.push({
+                    lrn,
+                    name
+                });
+                renderSelectedStudents();
+            }
         }
 
-        // Moved resetSearch OUTSIDE of DOMContentLoaded so HTML buttons can trigger it
-        function resetSearch() {
-            document.getElementById('violation-form-section').classList.add('opacity-0');
-            setTimeout(() => {
-                document.getElementById('violation-form-section').classList.add('hidden');
-            }, 300);
+        // Remove a student from the array and UI
+        function removeStudent(lrn) {
+            selectedStudents = selectedStudents.filter(s => s.lrn !== lrn);
+            renderSelectedStudents();
+        }
 
-            document.getElementById('selected-student-card').classList.add('hidden');
-            document.getElementById('lis-search-input').parentElement.classList.remove('hidden');
-            document.getElementById('lis-search-input').focus();
-            document.getElementById('form-lrn-input').value = '';
+        // Render the array to the screen and generate hidden inputs
+        function renderSelectedStudents() {
+            const container = document.getElementById('selected-students-container');
+            const hiddenInputsContainer = document.getElementById('hidden-lrn-inputs');
+            const formSection = document.getElementById('violation-form-section');
+            const submitBtn = document.getElementById('submit-btn');
+
+            container.innerHTML = '';
+            hiddenInputsContainer.innerHTML = '';
+
+            if (selectedStudents.length > 0) {
+                formSection.classList.remove('hidden');
+                setTimeout(() => formSection.classList.remove('opacity-0'), 50);
+                submitBtn.removeAttribute('disabled');
+            } else {
+                formSection.classList.add('opacity-0');
+                setTimeout(() => formSection.classList.add('hidden'), 300);
+                submitBtn.setAttribute('disabled', 'disabled');
+            }
+
+            selectedStudents.forEach((student, index) => {
+                // Generate UI Card
+                container.innerHTML += `
+                    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between shadow-sm">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-emerald-200 text-emerald-700 flex items-center justify-center font-bold mr-4">
+                                ${index + 1}
+                            </div>
+                            <div>
+                                <div class="text-sm font-black text-slate-900">${student.name}</div>
+                                <div class="text-xs font-medium text-slate-600">LRN: ${student.lrn}</div>
+                            </div>
+                        </div>
+                        <button type="button" onclick="removeStudent('${student.lrn}')" class="px-3 py-1.5 bg-white text-rose-600 hover:bg-rose-50 hover:border-rose-200 rounded-lg text-xs font-bold border border-slate-200 transition-colors shadow-sm">
+                            Remove
+                        </button>
+                    </div>
+                `;
+
+                // Generate Hidden Input for Form Submit
+                hiddenInputsContainer.innerHTML += `<input type="hidden" name="lrns[]" value="${student.lrn}">`;
+            });
         }
 
         // Auto-loader for when arriving from the Violator Database
@@ -398,17 +432,10 @@
             const prefillLrn = urlParams.get('prefill_lrn');
 
             if (prefillLrn) {
-                // 1. Put the LRN in the box
                 document.getElementById('lis-search-input').value = prefillLrn;
-
-                // 2. Fetch the student from the database
                 await searchLisDatabase();
-
-                // 3. Automatically click the first result so the user skips Step 1 entirely!
                 const firstResult = document.querySelector('#search-results-list button');
-                if (firstResult) {
-                    firstResult.click();
-                }
+                if (firstResult) firstResult.click();
             }
         });
     </script>

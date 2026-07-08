@@ -21,6 +21,9 @@ use App\Http\Controllers\Teacher\CotController as TeacherCotController;
 use App\Http\Controllers\Teacher\IncidentController;
 use App\Http\Controllers\Teacher\TeacherInventoryController;
 use App\Http\Controllers\Teacher\ClearanceController as TeacherClearance;
+use App\Http\Controllers\Teacher\IncidentManagerController;
+
+
 
 // Admin Controllers
 use App\Http\Controllers\Admin\PersonnelController;
@@ -33,6 +36,7 @@ use App\Http\Controllers\Admin\ClearanceController as AdminClearance;
 use App\Http\Controllers\Counselor\IncidentReviewController;
 use App\Http\Controllers\Counselor\ViolatorController;
 use App\Http\Controllers\Counselor\GoodMoralController;
+use App\Http\Controllers\PublicTipController;
 
 // School Head Controllers
 use App\Http\Controllers\SchoolHead\DllApprovalController;
@@ -47,6 +51,16 @@ use Illuminate\Support\Facades\Auth;
 
 // Redirect root to login
 Route::get('/', fn () => redirect()->route('login'));
+
+// ==========================================
+// PUBLIC ROUTES (No Login Required)
+// ==========================================
+// Students scan the QR code and go here anonymously.
+Route::get('/report/tip', [PublicTipController::class, 'create'])->name('public.tip.create');
+// Limits the user to 3 submissions per minute based on their IP address
+Route::post('/report/tip', [PublicTipController::class, 'store'])
+    ->middleware('throttle:3,1')
+    ->name('public.tip.store');
 
 Route::post('/copilot/global', [GlobalCopilotController::class, 'handlePrompt'])
     ->middleware('auth')
@@ -121,6 +135,9 @@ Route::resource('inventory', AdminInventoryController::class);
         Route::put('dll/{dll}/resubmit', [DailyLessonLogController::class, 'resubmit'])->name('dll.resubmit');
         Route::resource('dll', DailyLessonLogController::class);
 
+        // Draft through Excel Routes
+Route::get('dll/excel/download', [DailyLessonLogController::class, 'downloadExcelTemplate'])->name('dll.excel.download');
+        Route::post('dll/excel/upload', [DailyLessonLogController::class, 'uploadExcelDraft'])->name('dll.excel.upload');
         // Portfolio
         Route::prefix('portfolio')->name('portfolio.')->group(function () {
             Route::get('/', [PortfolioController::class, 'index'])->name('index');
@@ -128,7 +145,17 @@ Route::resource('inventory', AdminInventoryController::class);
             Route::post('/', [PortfolioController::class, 'store'])->name('store');
             Route::delete('/{portfolio}', [PortfolioController::class, 'destroy'])->name('destroy');
         });
+// Behavioral Oversight (Teacher)
+        Route::prefix('behavior')->name('behavior.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'create'])->name('create');
+            Route::post('/store', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'store'])->name('store');
 
+            // NEW: Edit, Update, and Delete routes
+            Route::get('/{incident}/edit', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'edit'])->name('edit');
+    Route::put('/{incident}', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'update'])->name('update');
+    Route::delete('/{incident}', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'destroy'])->name('destroy');
+    });
         // Teacher Asset Management
         Route::get('/inventory', [TeacherInventoryController::class, 'index'])->name('inventory.index');
 Route::get('/inventory/{inventory}/damage', [TeacherInventoryController::class, 'reportDamage'])->name('inventory.damage');
@@ -137,32 +164,44 @@ Route::get('/inventory/{inventory}/borrow', [TeacherInventoryController::class, 
 Route::post('/inventory/{inventory}/borrow', [TeacherInventoryController::class, 'storeBorrow'])->name('inventory.borrow.store');
 });
 
-    // ==========================================
-    // COUNSELOR GROUP
-    // ==========================================
-    Route::prefix('counselor')->name('counselor.')->middleware(['role:counselor|admin'])->group(function () {
-        Route::get('dashboard', [CounselorDashboard::class, 'index'])->name('dashboard');
 
-        // Incident Management
-        Route::get('incidents', [IncidentReviewController::class, 'index'])->name('incidents.index');
-        Route::get('incidents/search-lis', [IncidentReviewController::class, 'searchLis'])->name('incidents.search_lis');
-        Route::get('incidents/create', [IncidentReviewController::class, 'create'])->name('incidents.create');
-        Route::post('incidents', [IncidentReviewController::class, 'store'])->name('incidents.store');
-        Route::get('incidents/{incident}/edit', [IncidentReviewController::class, 'edit'])->name('incidents.edit');
-        Route::put('incidents/{incident}', [IncidentReviewController::class, 'update'])->name('incidents.update');
-        Route::delete('incidents/{incident}', [IncidentReviewController::class, 'destroy'])->name('incidents.destroy');
-        Route::put('incidents/{incident}/resolve', [IncidentReviewController::class, 'resolve'])->name('incidents.resolve');
 
-        // Violator Directory
-        Route::get('violators', [ViolatorController::class, 'index'])->name('violators.index');
-        Route::get('violators/{student}', [ViolatorController::class, 'show'])->name('violators.show');
 
-        // Good Moral Audits
-        Route::get('good-moral', [GoodMoralController::class, 'index'])->name('good_moral.index');
-        Route::post('good-moral/generate', [GoodMoralController::class, 'generate'])->name('good_moral.generate');
-        Route::post('good-moral/batch', [GoodMoralController::class, 'generateBatch'])->name('good_moral.batch');
-        Route::post('good-moral/blocked/export', [GoodMoralController::class, 'exportBlocked'])->name('good_moral.blocked.export');
-    });
+// ==========================================
+// COUNSELOR GROUP
+// ==========================================
+Route::prefix('counselor')->name('counselor.')->middleware(['auth', 'role:counselor|admin'])->group(function () {
+
+    Route::get('dashboard', [CounselorDashboard::class, 'index'])->name('dashboard');
+
+    // Incident Management
+    Route::get('incidents/queue', [IncidentReviewController::class, 'queue'])->name('incidents.queue');
+
+    // FIXED: Removed the extra 'counselor' prefix and name to match the group settings
+    Route::get('incidents/qr-flyer', [IncidentReviewController::class, 'printQr'])->name('qr.print');
+
+    Route::get('incidents', [IncidentReviewController::class, 'index'])->name('incidents.index');
+    Route::get('incidents/search-lis', [IncidentReviewController::class, 'searchLis'])->name('incidents.search_lis');
+    Route::get('incidents/create', [IncidentReviewController::class, 'create'])->name('incidents.create');
+    Route::post('incidents', [IncidentReviewController::class, 'store'])->name('incidents.store');
+    Route::get('incidents/{incident}/edit', [IncidentReviewController::class, 'edit'])->name('incidents.edit');
+    Route::put('incidents/{incident}', [IncidentReviewController::class, 'update'])->name('incidents.update');
+    Route::delete('incidents/{incident}', [IncidentReviewController::class, 'destroy'])->name('incidents.destroy');
+    Route::put('incidents/{incident}/resolve', [IncidentReviewController::class, 'resolve'])->name('incidents.resolve');
+    Route::post('incidents/toggle-intake', [IncidentReviewController::class, 'toggleIntake'])->name('tips.toggle');
+    Route::get('incidents/triage/{tip}', [IncidentReviewController::class, 'triageTip'])->name('tips.triage');
+    Route::post('incidents/triage/{tip}/process', [IncidentReviewController::class, 'processTriage'])->name('tips.process');
+
+    // Violator Directory
+    Route::get('violators', [ViolatorController::class, 'index'])->name('violators.index');
+    Route::get('violators/{student}', [ViolatorController::class, 'show'])->name('violators.show');
+
+    // Good Moral Audits
+    Route::get('good-moral', [GoodMoralController::class, 'index'])->name('good_moral.index');
+    Route::post('good-moral/generate', [GoodMoralController::class, 'generate'])->name('good_moral.generate');
+    Route::post('good-moral/batch', [GoodMoralController::class, 'generateBatch'])->name('good_moral.batch');
+    Route::post('good-moral/blocked/export', [GoodMoralController::class, 'exportBlocked'])->name('good_moral.blocked.export');
+});
 
     // ==========================================
     // SCHOOL HEAD GROUP

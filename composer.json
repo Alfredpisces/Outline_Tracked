@@ -13,6 +13,7 @@
         "livewire/livewire": "^4.3",
         "maatwebsite/excel": "^3.1",
         "rap2hpoutre/fast-excel": "^5.7",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {

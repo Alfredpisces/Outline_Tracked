@@ -3,7 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Gate; // We need to import the Gate facade
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,7 +21,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // The "God Mode" Bypass
+        // 1. Force HTTPS for ngrok tunneling when in local environment
+        if (config('app.env') === 'local') {
+            URL::forceScheme('https');
+        }
+
+        // 2. The "God Mode" Bypass
         // This intercepts every single permission check in the system.
         Gate::before(function ($user, $ability) {
             if ($user->role === 'admin') {

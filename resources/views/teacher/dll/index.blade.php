@@ -1,5 +1,6 @@
 <x-app-layout>
-    <div class="py-8 min-h-[calc(100vh-10rem)] bg-slate-50/50" x-data="{ showProfileModal: false }">
+    {{-- Centralized Alpine State for Modals and Excel Modes --}}
+    <div class="py-8 min-h-[calc(100vh-10rem)] bg-slate-50/50" x-data="{ showProfileModal: false, showExcelModal: false, excelMode: 'download' }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
             {{-- HEADER SECTION --}}
@@ -23,10 +24,11 @@
                         + Draft Online
                     </a>
 
-                    <a href="/teacher/dll/offline"
-                        class="inline-flex items-center justify-center rounded-xl bg-slate-800 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-slate-900">
-                        ⚡ Draft Offline
-                    </a>
+                    {{-- NEW: Excel Offline Drafting Button --}}
+                    <button @click="showExcelModal = true"
+                        class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-emerald-700">
+                        📊 Draft through Excel
+                    </button>
                 </div>
             </div>
 
@@ -55,33 +57,6 @@
                     </ul>
                 </div>
             @endif
-
-            {{-- OFFLINE SYNC PROMPT --}}
-            <div x-data="offlineSync()" x-init="checkOfflineDrafts()" x-show="hasOfflineDraft" style="display: none;">
-                <div
-                    class="p-5 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-                    <div class="flex items-start gap-4">
-                        <div class="text-3xl">📡</div>
-                        <div>
-                            <h4 class="font-black text-indigo-900 text-base">Offline Draft Found</h4>
-                            <p class="text-sm text-indigo-700 mt-1 font-medium">You have an unsaved offline draft for
-                                <strong x-text="draftData ? draftData.subject : ''"></strong>. Would you like to sync it
-                                to the server now?</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3 w-full sm:w-auto">
-                        <button @click="dismissDraft"
-                            class="px-5 py-2.5 text-xs font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-100 rounded-xl transition w-full sm:w-auto">
-                            Dismiss
-                        </button>
-                        <button @click="importDraft"
-                            class="px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition w-full sm:w-auto flex justify-center items-center gap-2">
-                            <span x-show="!isSyncing">Import Draft</span>
-                            <span x-show="isSyncing">Syncing...</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             {{-- TEACHING LOAD PROFILES --}}
             <div>
@@ -273,8 +248,7 @@
                                                         🔄 Resubmit
                                                     </button>
 
-                                                    <div x-show="showReply" @click.away="showReply = false"
-                                                        x-transition
+                                                    <div x-show="showReply" @click.away="showReply = false" x-transition
                                                         class="absolute bottom-full right-0 mb-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 p-4 z-50 text-left">
                                                         <form action="{{ route('teacher.dll.resubmit', $dll) }}"
                                                             method="POST">
@@ -336,19 +310,13 @@
         </div>
 
         {{-- MODAL: New Subject Profile --}}
-        <div x-show="showProfileModal" style="display: none;" class="relative z-50" aria-labelledby="modal-title"
-            role="dialog" aria-modal="true">
+        <div x-show="showProfileModal" style="display: none;" class="relative z-50">
             <div x-show="showProfileModal" x-transition.opacity
                 class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"></div>
-
             <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
                 <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                     <div x-show="showProfileModal" @click.away="showProfileModal = false"
-                        x-transition:enter="ease-out duration-300"
-                        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
                         class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-100">
-
                         <div
                             class="bg-slate-50/50 px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                             <div class="flex items-center gap-3">
@@ -391,7 +359,6 @@
                                         <option value="Values Education">Values Education</option>
                                     </select>
                                 </div>
-
                                 <div>
                                     <label
                                         class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Grade
@@ -405,7 +372,6 @@
                                         <option value="Grade 10">Grade 10</option>
                                     </select>
                                 </div>
-
                                 <div
                                     class="bg-slate-50/50 pt-4 mt-6 border-t border-slate-100 flex items-center justify-end gap-3">
                                     <button type="button" @click="showProfileModal = false"
@@ -420,63 +386,151 @@
                 </div>
             </div>
         </div>
+
+        {{-- MODAL: Draft through Excel --}}
+        <div x-show="showExcelModal" style="display: none;" class="relative z-50">
+            <div x-show="showExcelModal" x-transition.opacity
+                class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div x-show="showExcelModal" @click.away="showExcelModal = false"
+                        x-transition:enter="ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                        class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-xl border border-slate-100">
+
+                        <div class="bg-slate-50 px-6 py-5 border-b border-slate-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg">
+                                        📊</div>
+                                    <div>
+                                        <h3 class="text-lg font-black text-slate-900">Excel Workspace</h3>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            Offline Drafting</p>
+                                    </div>
+                                </div>
+                                <button @click="showExcelModal = false"
+                                    class="text-slate-400 hover:text-slate-600 transition-colors">
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="flex p-1 bg-slate-200/50 rounded-xl">
+                                <button @click="excelMode = 'download'"
+                                    class="flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all"
+                                    :class="excelMode === 'download' ? 'bg-white text-emerald-700 shadow-sm' :
+                                        'text-slate-500 hover:text-slate-700'">1.
+                                    Get Template</button>
+                                <button @click="excelMode = 'upload'"
+                                    class="flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all"
+                                    :class="excelMode === 'upload' ? 'bg-white text-blue-700 shadow-sm' :
+                                        'text-slate-500 hover:text-slate-700'">2.
+                                    Upload Draft</button>
+                            </div>
+                        </div>
+
+                        <div x-show="excelMode === 'download'" class="p-6">
+                            <form action="{{ route('teacher.dll.excel.download') }}" method="GET"
+                                class="space-y-5">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Attached
+                                        School</label>
+                                    <input type="text" name="school_name"
+                                        value="{{ auth()->user()->school_name ?? '' }}" required
+                                        placeholder="e.g., University of Southern Mindanao - JHS"
+                                        class="w-full bg-slate-50 border-slate-200 rounded-xl focus:ring-emerald-500 text-sm font-medium text-slate-700">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Subject</label>
+                                        <select name="subject" required
+                                            class="w-full bg-slate-50 border-slate-200 rounded-xl focus:ring-emerald-500 text-sm font-medium text-slate-700">
+                                            <option value="">-- Select --</option>
+                                            @foreach ($profiles->pluck('subject')->unique() as $subject)
+                                                <option value="{{ $subject }}">{{ $subject }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Grade
+                                            Level</label>
+                                        <select name="grade_level" required
+                                            class="w-full bg-slate-50 border-slate-200 rounded-xl focus:ring-emerald-500 text-sm font-medium text-slate-700">
+                                            <option value="">-- Select --</option>
+                                            @foreach ($profiles->pluck('grade_level')->unique() as $grade)
+                                                <option value="{{ $grade }}">{{ $grade }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">DepEd
+                                        Framework</label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <label
+                                            class="flex items-center p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition"><input
+                                                type="radio" name="framework" value="ILAW" required
+                                                class="text-emerald-600 focus:ring-emerald-500"><span
+                                                class="ml-2 text-sm font-bold text-slate-700">ILAW</span></label>
+                                        <label
+                                            class="flex items-center p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition"><input
+                                                type="radio" name="framework" value="MATATAG" required
+                                                class="text-emerald-600 focus:ring-emerald-500"><span
+                                                class="ml-2 text-sm font-bold text-slate-700">MATATAG</span></label>
+                                    </div>
+                                </div>
+                                <div class="pt-4 mt-2 border-t border-slate-100 flex justify-end">
+                                    <button type="submit"
+                                        class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition-all">Download
+                                        Spacious Template ↓</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div x-show="excelMode === 'upload'" class="p-6" style="display: none;">
+                            <form action="{{ route('teacher.dll.excel.upload') }}" method="POST"
+                                enctype="multipart/form-data" class="space-y-5">
+                                @csrf
+                                <div
+                                    class="border-2 border-dashed border-blue-200 bg-blue-50/50 rounded-2xl p-8 text-center hover:bg-blue-50 transition cursor-pointer relative group">
+                                    <input type="file" name="excel_file" accept=".xlsx, .xls" required
+                                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                    <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">📁</div>
+                                    <h4 class="font-black text-blue-900 text-sm">Click or drag your filled Excel file
+                                        here</h4>
+                                    <p class="text-xs text-blue-600 font-medium mt-1">Must be the exact template
+                                        downloaded from step 1.</p>
+                                </div>
+
+                                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+                                    <span class="text-amber-500">⚠️</span>
+                                    <p class="text-xs font-medium text-amber-800">
+                                        Please ensure you haven't renamed the tabs or deleted any rows from the "READ
+                                        ME" structure, otherwise the extraction will fail.
+                                    </p>
+                                </div>
+
+                                <div class="pt-4 mt-2 border-t border-slate-100 flex justify-end">
+                                    <button type="submit"
+                                        class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition-all">Extract
+                                        & Save Draft 🚀</button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
-    {{-- Alpine Component: Offline Draft Sync Logic --}}
-    <script>
-        function offlineSync() {
-            return {
-                hasOfflineDraft: false,
-                isSyncing: false,
-                draftData: null,
-
-                checkOfflineDrafts() {
-                    const draft = localStorage.getItem('tracked_offline_dll');
-                    if (draft) {
-                        try {
-                            this.draftData = JSON.parse(draft);
-                            this.hasOfflineDraft = true;
-                        } catch (e) {
-                            console.error("Corrupted offline draft data", e);
-                        }
-                    }
-                },
-
-                dismissDraft() {
-                    if (confirm("Are you sure? This will delete your offline progress permanently.")) {
-                        localStorage.removeItem('tracked_offline_dll');
-                        this.hasOfflineDraft = false;
-                        this.draftData = null;
-                    }
-                },
-
-                importDraft() {
-                    this.isSyncing = true;
-
-                    fetch('{{ route('teacher.dll.offline.import') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify(this.draftData)
-                        })
-                        .then(response => {
-                            if (!response.ok) throw new Error("Network response was not ok");
-                            return response.json();
-                        })
-                        .then(data => {
-                            localStorage.removeItem('tracked_offline_dll');
-                            this.hasOfflineDraft = false;
-                            window.location.href = '/teacher/dll/' + data.dll_id + '/week';
-                        })
-                        .catch(error => {
-                            alert("There was an error syncing your draft. Please try again.");
-                            this.isSyncing = false;
-                        });
-                }
-            }
-        }
-    </script>
 </x-app-layout>

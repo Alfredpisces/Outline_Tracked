@@ -17,7 +17,6 @@
     <div class="relative z-10 flex items-center h-20 px-6 border-b border-slate-800/50 shrink-0 mt-2">
         <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
 
-            <!-- TRACKED SVG LOGO -->
             <div
                 class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-600 rounded-xl shadow-lg shadow-indigo-500/30 group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-300 ring-1 ring-white/20 p-2">
                 <svg class="w-full h-full text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -60,17 +59,43 @@
         </div>
 
         @if (in_array($activeRole, ['counselor', 'admin']))
-            {{-- Incident Management --}}
+            {{-- 1. ACTION REQUIRED: INTAKE DESK --}}
             <div>
                 <div class="{{ $sectionTitle }}">
                     <div class="h-px bg-slate-800 flex-1"></div>
-                    <span>Incident Management</span>
+                    <span class="text-blue-400">Action Required</span>
+                    <div class="h-px bg-slate-800 flex-1"></div>
+                </div>
+                <div class="space-y-1.5">
+                    @php
+                        $activeQueue =
+                            'bg-gradient-to-r from-blue-500/20 to-transparent text-blue-200 border-blue-500/40 shadow-[inset_0px_0px_18px_rgba(59,130,246,0.14)]';
+                    @endphp
+                    <a href="{{ route('counselor.incidents.queue') }}"
+                        class="{{ $linkBase }} {{ $isActive('counselor.incidents.queue') ? $activeQueue : $inactive }}">
+                        <svg class="{{ $iconBase }} {{ $isActive('counselor.incidents.queue') ? 'text-blue-300' : 'text-slate-500 group-hover:text-blue-300' }}"
+                            fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                        <span>Active Intake Queue</span>
+                    </a>
+                </div>
+            </div>
+
+            {{-- 2. CASE MANAGEMENT --}}
+            <div>
+                <div class="{{ $sectionTitle }}">
+                    <div class="h-px bg-slate-800 flex-1"></div>
+                    <span>Case Management</span>
                     <div class="h-px bg-slate-800 flex-1"></div>
                 </div>
                 <div class="space-y-1.5">
                     @php
                         $activeLog =
                             'bg-gradient-to-r from-rose-500/20 to-transparent text-rose-200 border-rose-500/40 shadow-[inset_0px_0px_18px_rgba(244,63,94,0.14)]';
+                        $activeIndex =
+                            'bg-gradient-to-r from-emerald-500/20 to-transparent text-emerald-200 border-emerald-500/40 shadow-[inset_0px_0px_18px_rgba(16,185,129,0.14)]';
                     @endphp
                     <a href="{{ route('counselor.incidents.create') }}"
                         class="{{ $linkBase }} {{ $isActive('counselor.incidents.create') ? $activeLog : $inactive }}">
@@ -78,16 +103,16 @@
                             fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>Log New Incident</span>
+                        <span>Manual Intake Form</span>
                     </a>
                     <a href="{{ route('counselor.incidents.index') }}"
-                        class="{{ $linkBase }} {{ $isActive('counselor.incidents.index') ? $activeLog : $inactive }}">
-                        <svg class="{{ $iconBase }} {{ $isActive('counselor.incidents.index') ? 'text-rose-300' : 'text-slate-500 group-hover:text-rose-300' }}"
+                        class="{{ $linkBase }} {{ $isActive('counselor.incidents.index') ? $activeIndex : $inactive }}">
+                        <svg class="{{ $iconBase }} {{ $isActive('counselor.incidents.index') ? 'text-emerald-300' : 'text-slate-500 group-hover:text-emerald-300' }}"
                             fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2" />
                         </svg>
-                        <span>Review Active Cases</span>
+                        <span>Incident History</span>
                     </a>
                 </div>
             </div>

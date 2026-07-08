@@ -11,6 +11,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\DllTemplateExport;
 
 class DailyLessonLogController extends Controller
 {
@@ -34,6 +36,80 @@ class DailyLessonLogController extends Controller
             ->withQueryString();
 
         return view('teacher.dll.index', compact('profiles', 'dailyLessonLogs'));
+    }
+
+    public function downloadExcelTemplate(Request $request)
+    {
+        $data = $request->validate([
+            'school_name' => 'required|string',
+            'subject' => 'required|string',
+            'grade_level' => 'required|string',
+            'framework' => 'required|in:ILAW,MATATAG',
+        ]);
+
+        $fileName = 'TrackEd_Draft_' . $data['subject'] . '_' . $data['framework'] . '.xlsx';
+
+        return Excel::download(new DllTemplateExport($data), $fileName);
+    }
+
+    public function uploadExcelDraft(Request $request)
+    {
+        $request->validate([
+            'excel_file' => 'required|mimes:xlsx,xls|max:5120',
+        ]);
+
+        try {
+            // Load the first sheet as a raw array
+            $rawArray = Excel::toArray(new \stdClass(), $request->file('excel_file'))[0];
+
+            // Map the Excel cells to our database expected format
+            // Based on the strict rows we defined in DllTemplateExport
+            $framework = $rawArray[6][3] ?? 'ILAW';
+
+            $payload = [
+                'action' => 'draft',
+                'template_type' => $framework,
+                'subject' => $rawArray[7][1] ?? 'Unknown',
+                'grade_quarter' => $rawArray[7][3] ?? 'Unknown',
+                'week_start_date' => $rawArray[8][1] ?? now()->startOfWeek()->toDateString(),
+                'week_end_date' => $rawArray[8][3] ?? now()->endOfWeek()->toDateString(),
+
+                'content_standard' => $rawArray[10][1] ?? '',
+                'performance_standard' => $rawArray[11][1] ?? '',
+                'competencies' => $rawArray[12][1] ?? '',
+                'references' => $rawArray[13][1] ?? '',
+
+                'entries' => []
+            ];
+
+            // Rows 16 to 20 contain Monday to Friday (Index 16 to 20 in 0-based array)
+            for ($i = 16; $i <= 20; $i++) {
+                if (!isset($rawArray[$i])) continue;
+
+                // Calculate date based on week start
+                $date = \Carbon\Carbon::parse($payload['week_start_date'])->addDays($i - 16)->toDateString();
+
+                $payload['entries'][] = [
+                    'entry_date' => $date,
+                    'procedure_a' => $rawArray[$i][1] ?? null,
+                    'procedure_c' => $rawArray[$i][2] ?? null,
+                    'procedure_e' => $rawArray[$i][3] ?? null,
+                    'reflection' => $rawArray[$i][4] ?? null,
+                ];
+            }
+
+            // Create a fake request to reuse your existing import logic
+            $fakeRequest = new Request($payload);
+            $fakeRequest->setUserResolver(function () use ($request) {
+                return $request->user();
+            });
+
+            return $this->importOffline($fakeRequest);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Excel Upload Error: ' . $e->getMessage());
+            return back()->withErrors(['excel_error' => 'Failed to extract data. Make sure you used the exact template and did not delete any instruction rows.']);
+        }
     }
 
     public function resubmit(\Illuminate\Http\Request $request, \App\Models\DailyLessonLog $dll)
