@@ -98,6 +98,11 @@
                                 class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2">
                                 <span>➡️ Push to Next Day</span>
                             </button>
+                            <button type="button" @click="copyToRestOfWeek"
+                                x-show="!isLocked && weekDays.indexOf(activeDate) < weekDays.length - 1"
+                                class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2">
+                                <span>📑 Copy to Rest of Week</span>
+                            </button>
 
                             <button type="button" @click="saveDay" :disabled="isSaving"
                                 class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md flex items-center gap-2">
@@ -499,6 +504,81 @@
                         this.activeDate = nextDate;
                         this.saveMessage = 'Lesson Moved! Hit save to confirm.';
                         setTimeout(() => this.saveMessage = '', 4000);
+                    }
+                },
+                async copyToRestOfWeek() {
+                    let currentIndex = this.weekDays.indexOf(this.activeDate);
+                    // Don't run if it's already the last day of the week
+                    if (currentIndex >= this.weekDays.length - 1) return;
+
+                    if (confirm(
+                            `Duplicate today's lesson plan to ALL remaining days of the week?\n\nThis will overwrite existing plans for the upcoming days.`
+                            )) {
+                        this.isSaving = true;
+                        this.saveMessage = 'Copying...';
+
+                        let sourceEntry = this.entries[this.activeDate];
+
+                        try {
+                            // Loop through all days AFTER the currently selected day
+                            for (let i = currentIndex + 1; i < this.weekDays.length; i++) {
+                                let nextDate = this.weekDays[i];
+
+                                // 1. Update Frontend State
+                                this.entries[nextDate].procedure_a = sourceEntry.procedure_a;
+                                this.entries[nextDate].procedure_b = sourceEntry.procedure_b;
+                                this.entries[nextDate].procedure_c = sourceEntry.procedure_c;
+                                this.entries[nextDate].procedure_d = sourceEntry.procedure_d;
+                                this.entries[nextDate].procedure_e = sourceEntry.procedure_e;
+                                this.entries[nextDate].day_type = sourceEntry.day_type;
+                                this.entries[nextDate].delivery_mode = sourceEntry.delivery_mode;
+
+                                // 2. Build Background Save Payload (Reused from your scanner logic)
+                                let payload = {};
+                                if (sourceEntry.day_type !== 'regular') {
+                                    payload = {
+                                        procedure_a: "NON_TEACHING:" + sourceEntry.day_type + "|" + (sourceEntry
+                                            .non_teaching_reason || ''),
+                                        procedure_b: null,
+                                        procedure_c: null,
+                                        procedure_d: null,
+                                        procedure_e: null,
+                                        reflection_notes: this.entries[nextDate].reflection_notes
+                                    };
+                                } else {
+                                    payload = {
+                                        procedure_a: "[MODE:" + sourceEntry.delivery_mode + "] " + sourceEntry
+                                            .procedure_a,
+                                        procedure_b: sourceEntry.procedure_b,
+                                        procedure_c: sourceEntry.procedure_c,
+                                        procedure_d: sourceEntry.procedure_d,
+                                        procedure_e: sourceEntry.procedure_e,
+                                        reflection_notes: this.entries[nextDate].reflection_notes
+                                    };
+                                }
+
+                                // 3. Execute Background Save
+                                await fetch(`/teacher/dll/{{ $dll->id }}/entries/${nextDate}`, {
+                                    method: 'POST',
+                                    credentials: 'same-origin',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': document.getElementById('csrf_token').value,
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify(payload)
+                                });
+                            }
+
+                            this.saveMessage = '✅ Week Populated!';
+                            setTimeout(() => this.saveMessage = '', 3500);
+
+                        } catch (error) {
+                            console.error("Batch copy failed:", error);
+                            alert("Failed to copy lessons. Please check your connection.");
+                        } finally {
+                            this.isSaving = false;
+                        }
                     }
                 },
 

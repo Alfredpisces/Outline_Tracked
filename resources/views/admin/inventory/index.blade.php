@@ -22,7 +22,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        AI Scan Receipt
+                        Scan Receipt
                     </button>
 
                     <button onclick="document.getElementById('csvUploadModal').classList.remove('hidden')"
@@ -32,6 +32,16 @@
                                 d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         Import Excel
+                    </button>
+
+                    {{-- NEW: Audit Personnel Button --}}
+                    <button onclick="document.getElementById('clearanceAuditModal').classList.remove('hidden')"
+                        class="inline-flex items-center justify-center rounded-2xl bg-emerald-50 px-4 py-3 text-xs font-black uppercase tracking-widest text-emerald-600 ring-1 ring-emerald-200 transition hover:bg-emerald-100 hover:-translate-y-0.5 shadow-sm">
+                        <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Audit Personnel
                     </button>
 
                     <a href="{{ route('admin.inventory.create') }}"
@@ -191,7 +201,7 @@
             {{-- Master Inventory Table --}}
             <section class="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
-                {{-- Bulk Action Toolbar (Hidden by default) --}}
+                {{-- Bulk Action Toolbar --}}
                 <div id="bulkActionBar"
                     class="hidden bg-indigo-50 border-b border-indigo-100 px-6 py-3 flex items-center justify-between transition-all">
                     <div class="flex items-center gap-3">
@@ -201,19 +211,24 @@
                         <span class="text-xs font-black uppercase tracking-widest text-indigo-900">Assets
                             Selected</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <select
+                    <form action="" method="POST" id="bulkActionForm" class="flex items-center gap-3 m-0">
+                        @csrf
+                        {{-- UPDATED: Added name attribute and Clearance Option --}}
+                        <select name="bulk_action" id="bulkActionSelect"
                             class="rounded-xl border-indigo-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 focus:border-indigo-500 focus:ring-indigo-500">
-                            <option>Reassign Location...</option>
-                            <option>Change Condition to...</option>
-                            <option>Assign to Personnel...</option>
-                            <option>Generate QR Codes</option>
-                            <option>Delete Selected</option>
+                            <option value="" disabled selected>Select Bulk Action...</option>
+                            <option value="clear_accountability" class="font-bold text-emerald-600">Mark as Returned
+                                (Clear Accountability)</option>
+                            <option value="reassign_location">Reassign Location...</option>
+                            <option value="change_condition">Change Condition to...</option>
+                            <option value="assign_personnel">Assign to Personnel...</option>
+                            <option value="generate_qr">Generate QR Codes</option>
+                            <option value="delete" class="text-rose-600">Delete Selected</option>
                         </select>
-                        <button
+                        <button type="submit"
                             class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-black uppercase tracking-widest text-white shadow-sm hover:bg-indigo-700 transition hover:-translate-y-0.5">Apply
                             Action</button>
-                    </div>
+                    </form>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -236,8 +251,9 @@
                             @forelse ($inventories as $item)
                                 <tr class="hover:bg-slate-50 transition-colors group">
                                     <td class="px-6 py-4">
-                                        <input type="checkbox"
-                                            class="row-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                                        <input type="checkbox" name="selected_items[]" value="{{ $item->id }}"
+                                            class="row-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                            form="bulkActionForm">
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
@@ -331,7 +347,6 @@
                                                         d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                                 </svg>
                                             </button>
-
                                             <a href="{{ route('admin.inventory.edit', $item) }}" title="Edit Asset"
                                                 class="inline-flex items-center justify-center h-8 w-8 rounded-xl bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
@@ -341,7 +356,6 @@
                                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
                                             </a>
-
                                             <form action="{{ route('admin.inventory.destroy', $item) }}"
                                                 method="POST" onsubmit="return confirm('Delete this asset?');"
                                                 class="inline">
@@ -387,6 +401,9 @@
         </div>
     </div>
 
+    {{-- MODALS SECTION --}}
+
+    {{-- 1. AI Scan Modal --}}
     <div id="aiScanModal"
         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity">
         <div
@@ -430,6 +447,7 @@
         </div>
     </div>
 
+    {{-- 2. CSV Upload Modal --}}
     <div id="csvUploadModal"
         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity">
         <div
@@ -471,12 +489,64 @@
         </div>
     </div>
 
+    {{-- NEW 3. Audit Personnel Modal --}}
+    <div id="clearanceAuditModal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-opacity">
+        <div
+            class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl transform transition-transform scale-100 relative">
+            <button onclick="document.getElementById('clearanceAuditModal').classList.add('hidden')"
+                class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-900">Audit Personnel Clearance</h3>
+            <p class="text-sm text-slate-500 mt-1 mb-6">Filter the master inventory to view active operational
+                liabilities for a specific staff member.</p>
+
+            <form action="{{ route('admin.inventory.index') }}" method="GET">
+                <div class="space-y-4">
+                    <div>
+                        <label for="assignee_id"
+                            class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Select
+                            Faculty/Staff</label>
+                        <select name="assignee_id" id="assignee_id"
+                            class="w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 focus:border-emerald-500 focus:ring-emerald-500"
+                            required>
+                            <option value="" disabled selected>Search personnel directory...</option>
+                            {{-- Assuming you pass a $users collection to the view --}}
+                            {{-- @foreach ($users as $user)
+                                <option value="{{ $user->id }}">{{ $user->first_name }} {{ $user->last_name }}</option>
+                            @endforeach --}}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-5">
+                    <button type="button"
+                        onclick="document.getElementById('clearanceAuditModal').classList.add('hidden')"
+                        class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
+                    <button type="submit"
+                        class="rounded-xl bg-emerald-600 px-6 py-2 text-xs font-black uppercase tracking-widest text-white shadow-md hover:bg-emerald-700">View
+                        Liabilities</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const selectAll = document.getElementById('selectAllCheckbox');
             const rowCheckboxes = document.querySelectorAll('.row-checkbox');
             const bulkActionBar = document.getElementById('bulkActionBar');
             const selectedCountDisplay = document.getElementById('selectedCount');
+            const bulkActionSelect = document.getElementById('bulkActionSelect');
 
             function updateBulkBar() {
                 const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
@@ -486,7 +556,8 @@
                     bulkActionBar.classList.remove('hidden');
                 } else {
                     bulkActionBar.classList.add('hidden');
-                    selectAll.checked = false;
+                    if (selectAll) selectAll.checked = false;
+                    bulkActionSelect.selectedIndex = 0; // Reset dropdown
                 }
             }
 

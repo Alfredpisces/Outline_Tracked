@@ -113,55 +113,63 @@ Route::resource('inventory', AdminInventoryController::class);
     });
 
     // ==========================================
-    // TEACHER GROUP
-    // ==========================================
-    Route::prefix('teacher')->name('teacher.')->middleware(['role:teacher|admin'])->group(function () {
-        Route::get('dashboard', [TeacherDashboard::class, 'index'])->name('dashboard');
+// TEACHER GROUP
+// ==========================================
+Route::prefix('teacher')->name('teacher.')->middleware(['role:teacher|admin'])->group(function () {
+    Route::get('dashboard', [TeacherDashboard::class, 'index'])->name('dashboard');
 
-        // COT Routes
-        Route::get('/cot', [TeacherCotController::class, 'index'])->name('cot.index');
-        Route::post('/cot/request', [TeacherCotController::class, 'storeRequest'])->name('cot.request');
-        Route::get('/cot/{id}', [TeacherCotController::class, 'show'])->name('cot.show');
+    // COT Routes
+    Route::get('/cot', [TeacherCotController::class, 'index'])->name('cot.index');
+    Route::post('/cot/request', [TeacherCotController::class, 'storeRequest'])->name('cot.request');
+    Route::get('/cot/{id}', [TeacherCotController::class, 'show'])->name('cot.show');
 
-        // DLL Routes
-        Route::get('dll/{dll}/week', [DailyLessonLogController::class, 'week'])->name('dll.week');
-        Route::post('dll/{dll}/entries/{date}', [DailyLessonLogController::class, 'saveEntry'])->name('dll.entry.save');
-        Route::post('dll/offline/import', [DailyLessonLogController::class, 'importOffline'])->name('dll.offline.import');
-        Route::post('dll/precheck', [DailyLessonLogController::class, 'precheck'])->name('dll.precheck');
-        Route::post('dll/profile', [DailyLessonLogController::class, 'storeProfile'])->name('dll.profile.store');
-        Route::post('dll/{dll}/copilot', [DailyLessonLogController::class, 'coPilotChat'])->name('dll.copilot');
-        Route::post('/dll/{dll}/ai/scan', [App\Http\Controllers\Teacher\DailyLessonLogController::class, 'scanCompliance'])->name('teacher.dll.ai.scan');
-        Route::put('dll/{dll}/submit', [DailyLessonLogController::class, 'submit'])->name('dll.submit');
-        Route::put('dll/{dll}/resubmit', [DailyLessonLogController::class, 'resubmit'])->name('dll.resubmit');
-        Route::resource('dll', DailyLessonLogController::class);
+    // DLL Routes
+    Route::get('dll/{dll}/week', [DailyLessonLogController::class, 'week'])->name('dll.week');
+    Route::post('dll/{dll}/entries/{date}', [DailyLessonLogController::class, 'saveEntry'])->name('dll.entry.save');
+    Route::post('dll/offline/import', [DailyLessonLogController::class, 'importOffline'])->name('dll.offline.import');
+    Route::post('dll/precheck', [DailyLessonLogController::class, 'precheck'])->name('dll.precheck');
 
-        // Draft through Excel Routes
-Route::get('dll/excel/download', [DailyLessonLogController::class, 'downloadExcelTemplate'])->name('dll.excel.download');
-        Route::post('dll/excel/upload', [DailyLessonLogController::class, 'uploadExcelDraft'])->name('dll.excel.upload');
-        // Portfolio
-        Route::prefix('portfolio')->name('portfolio.')->group(function () {
-            Route::get('/', [PortfolioController::class, 'index'])->name('index');
-            Route::get('/create', [PortfolioController::class, 'create'])->name('create');
-            Route::post('/', [PortfolioController::class, 'store'])->name('store');
-            Route::delete('/{portfolio}', [PortfolioController::class, 'destroy'])->name('destroy');
-        });
-// Behavioral Oversight (Teacher)
-        Route::prefix('behavior')->name('behavior.')->group(function () {
-            Route::get('/', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'index'])->name('index');
-            Route::get('/create', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'create'])->name('create');
-            Route::post('/store', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'store'])->name('store');
+    // Teaching Load Profile Routes
+    Route::post('dll/profile', [DailyLessonLogController::class, 'storeProfile'])->name('dll.profile.store');
+    Route::put('dll/profile/{id}', [DailyLessonLogController::class, 'updateProfile'])->name('dll.profile.update');
+    Route::delete('dll/profile/{id}', [DailyLessonLogController::class, 'destroyProfile'])->name('dll.profile.destroy');
 
-            // NEW: Edit, Update, and Delete routes
-            Route::get('/{incident}/edit', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'edit'])->name('edit');
-    Route::put('/{incident}', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'update'])->name('update');
-    Route::delete('/{incident}', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'destroy'])->name('destroy');
+    Route::post('dll/{dll}/copilot', [DailyLessonLogController::class, 'coPilotChat'])->name('dll.copilot');
+    Route::post('/dll/{dll}/ai/scan', [App\Http\Controllers\Teacher\DailyLessonLogController::class, 'scanCompliance'])->name('teacher.dll.ai.scan');
+    Route::put('dll/{dll}/submit', [DailyLessonLogController::class, 'submit'])->name('dll.submit');
+    Route::put('dll/{dll}/resubmit', [DailyLessonLogController::class, 'resubmit'])->name('dll.resubmit');
+    Route::resource('dll', DailyLessonLogController::class);
+
+    // Draft through Excel Routes
+    Route::get('dll/excel/download', [DailyLessonLogController::class, 'downloadExcelTemplate'])->name('dll.excel.download');
+    Route::post('dll/excel/upload', [DailyLessonLogController::class, 'uploadExcelDraft'])->name('dll.excel.upload');
+
+    // Portfolio
+    Route::prefix('portfolio')->name('portfolio.')->group(function () {
+        Route::get('/', [PortfolioController::class, 'index'])->name('index');
+        Route::get('/create', [PortfolioController::class, 'create'])->name('create');
+        Route::post('/', [PortfolioController::class, 'store'])->name('store');
+        Route::delete('/{portfolio}', [PortfolioController::class, 'destroy'])->name('destroy');
     });
-        // Teacher Asset Management
-        Route::get('/inventory', [TeacherInventoryController::class, 'index'])->name('inventory.index');
-Route::get('/inventory/{inventory}/damage', [TeacherInventoryController::class, 'reportDamage'])->name('inventory.damage');
-Route::post('/inventory/{inventory}/damage', [TeacherInventoryController::class, 'storeDamage'])->name('inventory.damage.store');
-Route::get('/inventory/{inventory}/borrow', [TeacherInventoryController::class, 'logBorrow'])->name('inventory.borrow');
-Route::post('/inventory/{inventory}/borrow', [TeacherInventoryController::class, 'storeBorrow'])->name('inventory.borrow.store');
+
+    // Behavioral Oversight (Teacher)
+    Route::prefix('behavior')->name('behavior.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'create'])->name('create');
+        Route::post('/store', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'store'])->name('store');
+
+        // Edit, Update, and Delete routes
+        Route::get('/{incident}/edit', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'edit'])->name('edit');
+        Route::put('/{incident}', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'update'])->name('update');
+        Route::delete('/{incident}', [App\Http\Controllers\Teacher\IncidentManagerController::class, 'destroy'])->name('destroy');
+    });
+
+    // Teacher Asset Management
+    Route::get('/inventory', [TeacherInventoryController::class, 'index'])->name('inventory.index');
+    Route::get('/inventory/{inventory}/damage', [TeacherInventoryController::class, 'reportDamage'])->name('inventory.damage');
+    Route::post('/inventory/{inventory}/damage', [TeacherInventoryController::class, 'storeDamage'])->name('inventory.damage.store');
+    Route::get('/inventory/{inventory}/borrow', [TeacherInventoryController::class, 'logBorrow'])->name('inventory.borrow');
+    Route::post('/inventory/{inventory}/borrow', [TeacherInventoryController::class, 'storeBorrow'])->name('inventory.borrow.store');
 });
 
 

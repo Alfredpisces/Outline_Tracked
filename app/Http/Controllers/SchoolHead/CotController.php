@@ -10,14 +10,14 @@ use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use thiagoalessio\TesseractOCR\TesseractOCR;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CotController extends Controller
 {
     public function index(): View
     {
-        $teachers = User::whereHas('roles', function ($query) {
-            $query->where('name', 'teacher');
+        $teachers = User::whereHas('roles', function ($query) {$query->where('name', 'teacher');
         })->orderBy('last_name')->get();
 
         $pendingRequests = CotObservation::with('teacher')
@@ -25,19 +25,17 @@ class CotController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $masterTeachers = User::whereHas('roles', function ($query) {
-            $query->where('name', 'teacher');
+        $masterTeachers = User::whereHas('roles', function ($query) {$query->where('name', 'teacher');
         })->where('deped_rank', 'LIKE', '%Master%')->get();
 
         return view('school_head.cot.index', compact('teachers', 'pendingRequests', 'masterTeachers'));
     }
 
-    public function assignObserver(Request $request, $id): RedirectResponse
+    public function assignObserver(Request $request,$id): RedirectResponse
     {
         $request->validate(['observer_id' => 'required|exists:users,id']);
 
-        $observation = CotObservation::findOrFail($id);
-        $observation->update([
+        $observation = CotObservation::findOrFail($id);$observation->update([
             'observer_id' => $request->observer_id,
             'status' => 'scheduled'
         ]);
@@ -47,39 +45,38 @@ class CotController extends Controller
 
     public function blankForm(Request $request): View
     {
-        $tier = $request->query('tier', 'proficient');
-        $indicators = $this->getDepEdIndicators();
+        $tier =$request->query('tier', 'proficient');
+        $indicators =$this->getDepEdIndicators();
         return view('school_head.cot.blank', compact('tier', 'indicators'));
     }
 
     public function create(User $teacher): View
     {
-        $indicators = $this->getDepEdIndicators();
+        $indicators =$this->getDepEdIndicators();
         return view('school_head.cot.create', compact('teacher', 'indicators'));
     }
 
-    public function store(Request $request, User $teacher): RedirectResponse
+    public function store(Request $request, User$teacher): RedirectResponse
     {
-        $indicators = $this->getDepEdIndicators();
-        $submittedScores = $request->input('scores', []);
+        $indicators =$this->getDepEdIndicators();
+        $submittedScores =$request->input('scores', []);
 
-        $processedScores = [];
-        $totalScore = 0;
+        $processedScores = [];$totalScore = 0;
         $count = 0;
 
-        foreach ($submittedScores as $num => $score) {
+        foreach ($submittedScores as $num =>$score) {
             $processedScores[$num] = [
-                'title' => $indicators[$num] ?? 'Indicator ' . $num,
+                'title' => $indicators[$num] ?? 'Indicator ' .$num,
                 'score' => $score
             ];
 
             if (is_numeric($score)) {
-                $totalScore += $score;
+                $totalScore +=$score;
                 $count++;
             }
         }
 
-        $averageRating = $count > 0 ? round($totalScore / $count, 2) : 0;
+        $averageRating =$count > 0 ? round($totalScore / $count, 2) : 0;
 
         $observation = CotObservation::create([
             'teacher_id' => $teacher->id,
@@ -87,8 +84,7 @@ class CotController extends Controller
             'status' => 'completed',
             'observation_date' => $request->input('observation_date', now()->format('Y-m-d')),
             'time_started' => $request->input('time_started', '00:00:00'),
-            'time_ended' => $request->input('time_ended', '00:00:00'),
-            'section' => $request->input('section', 'N/A'),
+            'time_ended' => $request->input('time_ended', '00:00:00'),             'section' =>$request->input('section', 'N/A'),
             'subject_taught' => $request->input('subject_taught'),
             'grade_level' => $request->input('grade_level'),
             'quarter' => $request->input('quarter'),
@@ -97,7 +93,6 @@ class CotController extends Controller
             'scores' => $processedScores
         ]);
 
-        // Clear session scores after successful save
         session()->forget('scanned_scores');
 
         return redirect()->route('school_head.cot.show', $observation->id)
@@ -110,131 +105,145 @@ class CotController extends Controller
         return view('school_head.cot.show', compact('observation'));
     }
 
-    // 7. AI Tesseract Scanner & Smart Parser
-    // 7. AI Tesseract Scanner & Smart Parser
+    // =========================================================================
+    // UPGRADED: Gemini 2.5 Flash Vision Scanner
+    // =========================================================================
     public function scan(Request $request)
     {
         $request->validate([
             'cot_image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
-        $imagePath = $request->file('cot_image')->store('temp_scans');
-        $absolutePath = \Illuminate\Support\Facades\Storage::path($imagePath);
+        $imagePath =$request->file('cot_image')->store('temp_scans');
+        $absolutePath = Storage::path($imagePath);
 
         if (!file_exists($absolutePath)) {
-            return back()->with('error', 'Upload failed: Laravel could not read the stored file.');
+            return back()->with('error', 'Upload failed: Could not locate the image file.');
         }
 
         try {
-            $ocr = new TesseractOCR($absolutePath);
-            $ocr->executable('C:\Program Files\Tesseract-OCR\tesseract.exe');
-            $ocr->psm(6); // PSM 6 forces Tesseract to assume a uniform block, better for grids
-            $extractedText = strtolower($ocr->run());
+            $apiKey = env('GEMINI_API_KEY');
+            if (!$apiKey) {
+                throw new \Exception("GEMINI_API_KEY is missing from your .env file.");
+            }
 
-            if (file_exists($absolutePath)) unlink($absolutePath);
+            // Convert image to Base64 for the Gemini API
+            $mimeType = mime_content_type($absolutePath);
+            $base64Image = base64_encode(file_get_contents($absolutePath));
 
+            $prompt = "You are an expert AI assistant tasked with extracting data from a Philippine DepEd Classroom Observation Tool (COT) rating sheet.
+            Carefully read the handwritten text on this form.
+            Extract the observed teacher's full name and the numerical scores (ranging from 2 to 8) for Indicators 1 through 9.
+            Return ONLY a valid, raw JSON object without any markdown wrapping (do not use ```json).
+            Format exactly like this:
+            {
+                \"teacher_name\": \"First Last\",
+                \"scores\": {
+                    \"1\": 5,
+                    \"2\": 6,
+                    \"3\": null,
+                    \"4\": 7,
+                    \"5\": 5,
+                    \"6\": 6,
+                    \"7\": 7,
+                    \"8\": 8,
+                    \"9\": 4
+                }
+            }
+            If a score is missing, blank, or you cannot read it due to handwriting, set the value to null.";
+
+            $baseUrl = "https://" . "generativelanguage.googleapis.com";
+            $endpoint = "/v1beta/models/gemini-2.5-flash:generateContent?key=";
+            $apiUrl = $baseUrl . $endpoint . trim($apiKey);
+
+            $response = Http::withOptions(['verify' => false])
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(60)
+                ->post($apiUrl, [
+                    'contents' => [
+                        [
+                            'parts' => [
+                                ['text' => $prompt],
+                                [
+                                    'inlineData' => [
+                                        'mimeType' => $mimeType,
+                                        'data' => $base64Image
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    'generationConfig' => [
+                        'temperature' => 0.1, // Low temperature for factual extraction
+                        'responseMimeType' => 'application/json',
+                    ]
+                ]);
+
+            // Clean up the temp file immediately after API call
+            unlink($absolutePath);
+
+            if (!$response->successful()) {
+                throw new \Exception('Google API Error: ' . $response->body());
+            }
+
+            $result = $response->json();
+            $aiText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '{}';
+
+            // Parse the JSON returned by Gemini
+            $extractedData = json_decode(trim($aiText), true);
+
+            if (!$extractedData || !isset($extractedData['scores'])) {
+                 return back()->with('error', 'AI Scanner failed to return structured data. Please ensure the image is clear.');
+            }
+
+            // Map the JSON to our expected session array (strictly indicators 1-9)
             $scannedScores = [];
             $missingCount = 0;
 
-            // ADVANCED INDICATOR MATCHING: Multiple backup keywords per row
-            $indicatorsMap = [
-                1 => ['content within', 'teaching areas', 'apply knowledge'],
-                2 => ['literacy', 'numeracy', 'enhance learner'],
-                3 => ['critical', 'creative', 'thinking'],
-                4 => ['structure', 'engage learners', 'manage classroom'],
-                5 => ['behavior', 'discipline', 'constructively'],
-                6 => ['differentiated', 'developmentally', 'experiences'],
-                7 => ['sequenced', 'learning processes', 'plan, manage'],
-                8 => ['learning resources', 'select, develop'],
-                9 => ['diagnostic', 'summative', 'assessment']
-            ];
+            for ($i = 1; $i <= 9; $i++) {
+                $score = $extractedData['scores'][(string)$i] ?? null;
 
-            // EXTENDED CORRECTION MAP: Includes table noise that looks like numbers
-            $correctionMap = [
-                's' => 5, 'S' => 5, '/' => 7, '?' => 7, 't' => 7, 'l' => 7, ']' => 7, '[' => 7, 'i' => 7, '\\' => 7, '|' => 7,
-                'b' => 6, 'g' => 6, 'o' => 6,
-                'h' => 4, 'y' => 4,
-                'e' => 3, 'z' => 2
-            ];
-
-            foreach ($indicatorsMap as $num => $aliases) {
-                $scannedScores[$num] = '';
-                $pos = false;
-
-                // Find the first matching alias to locate the row
-                foreach ($aliases as $alias) {
-                    $pos = strpos($extractedText, strtolower($alias));
-                    if ($pos !== false) break;
+                // Validate score constraints (2 to 8)
+                if (is_numeric($score) && $score >= 2 && $score <= 8) {
+                    $scannedScores[$i] = (int)$score;
+                } else {
+                    $scannedScores[$i] = '';
+                    $missingCount++;
                 }
-
-                if ($pos !== false) {
-                    // Grab up to 200 chars AFTER the keyword to capture the right-hand column
-                    $window = substr($extractedText, $pos, 200);
-
-                    // Scrub table borders/noise to isolate the handwritten score
-                    $window = str_replace(['_', '[', ']', '{', '}', '(', ')', '.', ',', ':'], ' ', $window);
-
-                    $tokens = preg_split('/\s+/', trim($window));
-                    $tokens = array_reverse($tokens); // Read right-to-left
-
-                    foreach ($tokens as $token) {
-                        $cleanToken = strtolower(trim($token));
-
-                        // If it's exactly 1 char and matches our flexible regex
-                        if (strlen($cleanToken) === 1 && preg_match('/^[2-8s\/\?tlbi\|\\hyezo]$/i', $cleanToken)) {
-                            $rawScore = $cleanToken;
-                            $scannedScores[$num] = $correctionMap[$rawScore] ?? $rawScore;
-                            break;
-                        }
-                    }
-                }
-
-                if ($scannedScores[$num] === '') $missingCount++;
             }
 
             session()->put('scanned_scores', $scannedScores);
 
-            // --- ADVANCED FUZZY NAME DETECTION ---
-            $teachers = User::whereHas('roles', function ($query) {
-                $query->where('name', 'teacher');
-            })->get();
-
+            // --- TEACHER NAME DETECTION ---
             $matchedTeacher = null;
-            $highestSimilarity = 0;
+            $extractedName = strtolower(trim($extractedData['teacher_name'] ?? ''));
 
-            // Strip out all punctuation for pure word comparison
-            $cleanExtractedText = preg_replace('/[^a-z\s]/i', ' ', $extractedText);
-            $ocrWords = array_filter(explode(' ', $cleanExtractedText));
+            if (!empty($extractedName)) {
+                $teachers = User::whereHas('roles', function ($query) {
+                    $query->where('name', 'teacher');
+                })->get();
 
-            foreach ($teachers as $teacher) {
-                $firstName = strtolower(trim($teacher->first_name));
-                $lastName = strtolower(trim($teacher->last_name));
+                $highestSimilarity = 0;
 
-                // 1. Check for Exact match without spaces (e.g. "alfredmoncano")
-                $textNoSpaces = str_replace(' ', '', $cleanExtractedText);
-                if (str_contains($textNoSpaces, str_replace(' ', '', $firstName)) ||
-                    str_contains($textNoSpaces, str_replace(' ', '', $lastName))) {
-                    $matchedTeacher = $teacher;
-                    break;
-                }
+                foreach ($teachers as $teacher) {
+                    $firstName = strtolower(trim($teacher->first_name));
+                    $lastName = strtolower(trim($teacher->last_name));
 
-                // 2. Fuzzy Match (Levenshtein Distance) for messy handwriting
-                foreach ($ocrWords as $word) {
-                    if (strlen($word) > 3) { // Only compare actual names, not small words
-                        similar_text($word, $firstName, $percentFirst);
-                        similar_text($word, $lastName, $percentLast);
+                    // Compare both First Last and Last First formats
+                    $format1 = $firstName . ' ' . $lastName;
+                    $format2 = $lastName . ' ' . $firstName;
 
-                        $maxPercent = max($percentFirst, $percentLast);
+                    similar_text($extractedName, $format1, $percent1);
+                    similar_text($extractedName, $format2, $percent2);
 
-                        // If the AI read a word that is at least 80% similar to the teacher's name
-                        if ($maxPercent >= 80 && $maxPercent > $highestSimilarity) {
-                            $highestSimilarity = $maxPercent;
-                            $matchedTeacher = $teacher;
-                        }
+                    $maxPercent = max($percent1, $percent2);
+
+                    // 75% threshold accounts for messy handwriting interpretations (e.g., "Jalani" vs "Jelani")
+                    if ($maxPercent >= 75 && $maxPercent > $highestSimilarity) {
+                        $highestSimilarity = $maxPercent;
+                        $matchedTeacher = $teacher;
                     }
                 }
-
-                if ($matchedTeacher && $highestSimilarity == 100) break; // Break early on a perfect match
             }
 
             $completenessMsg = $missingCount === 0
@@ -247,11 +256,14 @@ class CotController extends Controller
             } else {
                 return redirect()->route('school_head.cot.index')
                     ->with('show_teacher_modal', true)
-                    ->with('error', "Scores extracted, but the AI could not decipher the handwriting for the Teacher's name. {$completenessMsg}");
+                    ->with('error', "Scores extracted, but the AI could not definitively match the handwriting to a Teacher's name in the database. {$completenessMsg}");
             }
 
         } catch (\Exception $e) {
-            if (file_exists($absolutePath)) unlink($absolutePath);
+            Log::error('Gemini Scanner Error: ' . $e->getMessage());
+            if (file_exists($absolutePath)) {
+                unlink($absolutePath);
+            }
             return back()->with('error', 'AI Scanner failed: ' . $e->getMessage());
         }
     }

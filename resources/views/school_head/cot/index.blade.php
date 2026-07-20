@@ -91,7 +91,8 @@
                                             {{ $req->observation_date->format('F d, Y') }}</p>
                                         <p class="text-xs text-slate-500">
                                             {{ \Carbon\Carbon::parse($req->time_started)->format('g:i A') }} -
-                                            {{ \Carbon\Carbon::parse($req->time_ended)->format('g:i A') }}</p>
+                                            {{ \Carbon\Carbon::parse($req->time_ended)->format('g:i A') }}
+                                        </p>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <form action="{{ route('cot.assign', $req->id) }}" method="POST"
@@ -146,25 +147,42 @@
                     Scan Completed Physical Form
                 </h4>
                 <p class="text-sm text-indigo-700 mt-1 max-w-xl">Upload a clear photo of a handwritten COT rating sheet.
-                    The AI will extract the scores and automatically build the digital record.</p>
+                    Gemini AI will extract the scores and automatically build the digital record.</p>
             </div>
 
-            <form action="{{ route('school_head.cot.scan') }}" method="POST" enctype="multipart/form-data"
-                class="relative z-10 flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                @csrf
-                <input type="file" name="cot_image" accept="image/jpeg, image/png" required
-                    class="w-full sm:w-auto text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-white file:text-indigo-700 hover:file:bg-indigo-100 shadow-sm cursor-pointer transition-colors">
-                <button type="submit"
-                    class="w-full sm:w-auto bg-indigo-600 text-white text-xs font-black px-6 py-2.5 rounded-lg shadow-sm hover:bg-indigo-700 transition flex justify-center items-center gap-2">
-                    Extract Scores &rarr;
+            <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto relative z-10">
+                <form action="{{ route('school_head.cot.scan') }}" method="POST" enctype="multipart/form-data"
+                    class="flex flex-col sm:flex-row items-center gap-3 w-full">
+                    @csrf
+                    <!-- Native File/Mobile Camera Input -->
+                    <input type="file" name="cot_image" id="cot_image_input"
+                        accept="image/jpeg, image/png, image/jpg" capture="environment" required
+                        class="w-full sm:w-auto text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-white file:text-indigo-700 hover:file:bg-indigo-100 shadow-sm cursor-pointer transition-colors">
+
+                    <button type="submit" id="scanSubmitBtn"
+                        class="w-full sm:w-auto bg-indigo-600 text-white text-xs font-black px-6 py-2.5 rounded-lg shadow-sm hover:bg-indigo-700 transition flex justify-center items-center gap-2 whitespace-nowrap"
+                        onclick="this.innerHTML='Scanning with AI...'; this.classList.add('opacity-75', 'cursor-not-allowed');">
+                        Extract Scores &rarr;
+                    </button>
+                </form>
+
+                <!-- Open Webcam Modal Button -->
+                <button type="button" onclick="openWebcam()"
+                    class="w-full sm:w-auto bg-slate-800 text-white text-xs font-black px-4 py-2.5 rounded-lg shadow-sm hover:bg-slate-700 transition flex justify-center items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                        </path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Use Webcam
                 </button>
-            </form>
+            </div>
         </div>
 
         <!-- SECTION 3: Teacher Observation Roster -->
-        <div class="bg-white shadow-sm border border-slate-200 rounded-2xl overflow-hidden">
-
-            <!-- Table Header with Search & Form Downloader -->
+        <div class="bg-white shadow-sm border border-slate-200 rounded-2xl overflow-hidden mt-8">
             <div
                 class="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row xl:justify-between xl:items-center gap-4">
                 <h3 class="text-lg font-bold text-slate-800 whitespace-nowrap">Complete Teacher Roster</h3>
@@ -227,7 +245,6 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @foreach ($teachers as $teacher)
-                                <!-- DIRECT DATABASE QUERY FIX FOR COUNTER -->
                                 @php
                                     $completedCount = \App\Models\CotObservation::where('teacher_id', $teacher->id)
                                         ->where('status', 'completed')
@@ -251,9 +268,8 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex flex-col gap-1">
-                                            <span class="inline-flex text-xs leading-5 font-bold text-slate-700">
-                                                {{ $teacher->deped_rank ?? 'Unassigned' }}
-                                            </span>
+                                            <span
+                                                class="inline-flex text-xs leading-5 font-bold text-slate-700">{{ $teacher->deped_rank ?? 'Unassigned' }}</span>
                                             @if (str_contains($teacher->deped_rank, 'Master'))
                                                 <span
                                                     class="text-[10px] font-black text-violet-700 uppercase tracking-wider">Highly
@@ -279,7 +295,7 @@
                                         <div class="flex items-center justify-end gap-2">
                                             <a href="#"
                                                 class="inline-flex items-center justify-center px-3 py-2 bg-white border border-slate-300 rounded-lg font-bold text-xs text-indigo-700 hover:bg-indigo-50 transition shadow-sm"
-                                                title="View & Print Past Records">
+                                                title="View Past Records">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -303,7 +319,7 @@
         </div>
     </div>
 
-    <!-- RESTORED: MANUAL TEACHER ASSIGNMENT MODAL -->
+    <!-- MANUAL TEACHER ASSIGNMENT MODAL -->
     @if (session('show_teacher_modal'))
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
@@ -327,7 +343,6 @@
                         handwriting for the teacher's name. <strong>Please select the teacher manually to apply these
                             scores.</strong>
                     </p>
-
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select
                         Teacher</label>
                     <select id="manual_teacher_select"
@@ -351,4 +366,110 @@
             </div>
         </div>
     @endif
+
+    <!-- WEBCAM MODAL -->
+    <div id="webcamModal"
+        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col">
+            <div class="bg-indigo-900 p-4 flex justify-between items-center text-white">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📷</span>
+                    <h3 class="font-black">Live Document Scanner</h3>
+                </div>
+                <button type="button" onclick="closeWebcam()"
+                    class="text-indigo-200 hover:text-white font-bold text-xl">&times;</button>
+            </div>
+
+            <div class="p-4 bg-slate-900 flex justify-center relative">
+                <video id="webcamVideo" class="rounded-xl w-full max-w-lg bg-black object-cover" autoplay
+                    playsinline></video>
+                <canvas id="webcamCanvas" class="hidden"></canvas>
+
+                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div class="w-3/4 h-5/6 border-2 border-dashed border-indigo-400/50 rounded-lg"></div>
+                </div>
+            </div>
+
+            <div class="p-5 bg-slate-50 flex justify-between items-center">
+                <p class="text-xs text-slate-500 font-bold">Align the COT sheet within the frame.</p>
+                <button id="snapButton" type="button" onclick="takeSnapshot()"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm px-6 py-3 rounded-xl shadow-md transition-transform active:scale-95 flex items-center gap-2">
+                    <div class="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                    Snap & Scan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let videoStream = null;
+
+        async function openWebcam() {
+            const modal = document.getElementById('webcamModal');
+            const video = document.getElementById('webcamVideo');
+            modal.classList.remove('hidden');
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: "environment",
+                        width: {
+                            ideal: 1920
+                        },
+                        height: {
+                            ideal: 1080
+                        }
+                    }
+                });
+                video.srcObject = videoStream;
+            } catch (err) {
+                alert("Camera access denied or unavailable. Please check your browser permissions.");
+                closeWebcam();
+            }
+        }
+
+        function closeWebcam() {
+            document.getElementById('webcamModal').classList.add('hidden');
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+        }
+
+        function takeSnapshot() {
+            const snapBtn = document.getElementById('snapButton');
+            snapBtn.innerHTML = 'Scanning with AI...';
+            snapBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
+            const video = document.getElementById('webcamVideo');
+            const canvas = document.getElementById('webcamCanvas');
+            const input = document.getElementById('cot_image_input');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            canvas.toBlob((blob) => {
+                const file = new File([blob], "scanned_cot_" + Date.now() + ".jpg", {
+                    type: "image/jpeg"
+                });
+
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                input.files = dataTransfer.files;
+
+                closeWebcam();
+
+                // Show loading state on main upload button as well
+                const mainSubmitBtn = document.getElementById('scanSubmitBtn');
+                if (mainSubmitBtn) {
+                    mainSubmitBtn.innerHTML = 'Scanning with AI...';
+                    mainSubmitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+                }
+
+                input.closest('form').submit();
+
+            }, 'image/jpeg', 0.95);
+        }
+    </script>
 </x-app-layout>

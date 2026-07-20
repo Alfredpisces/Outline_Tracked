@@ -24,13 +24,13 @@ class DailyLessonLogController extends Controller
             ->orderBy('grade_level')
             ->get();
 
-        $query = $request->user()->authoredDailyLessonLogs();
+        $query =$request->user()->authoredDailyLessonLogs();
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->where('status',$request->status);
         }
 
-        $dailyLessonLogs = $query
+        $dailyLessonLogs =$query
             ->orderByDesc('updated_at')
             ->paginate(15)
             ->withQueryString();
@@ -40,16 +40,16 @@ class DailyLessonLogController extends Controller
 
     public function downloadExcelTemplate(Request $request)
     {
-        $data = $request->validate([
+        $data =$request->validate([
             'school_name' => 'required|string',
             'subject' => 'required|string',
             'grade_level' => 'required|string',
             'framework' => 'required|in:ILAW,MATATAG',
         ]);
 
-        $fileName = 'TrackEd_Draft_' . $data['subject'] . '_' . $data['framework'] . '.xlsx';
+        $fileName = 'TrackEd_Draft_' . $data['subject'] . '_' .$data['framework'] . '.xlsx';
 
-        return Excel::download(new DllTemplateExport($data), $fileName);
+        return Excel::download(new DllTemplateExport($data),$fileName);
     }
 
     public function uploadExcelDraft(Request $request)
@@ -60,11 +60,11 @@ class DailyLessonLogController extends Controller
 
         try {
             // Load the first sheet as a raw array
-            $rawArray = Excel::toArray(new \stdClass(), $request->file('excel_file'))[0];
+            $rawArray = Excel::toArray(new \stdClass(),$request->file('excel_file'))[0];
 
             // Map the Excel cells to our database expected format
             // Based on the strict rows we defined in DllTemplateExport
-            $framework = $rawArray[6][3] ?? 'ILAW';
+            $framework =$rawArray[6][3] ?? 'ILAW';
 
             $payload = [
                 'action' => 'draft',
@@ -106,19 +106,18 @@ class DailyLessonLogController extends Controller
 
             return $this->importOffline($fakeRequest);
 
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Excel Upload Error: ' . $e->getMessage());
+        } catch (\Exception $e) {             \Illuminate\Support\Facades\Log::error('Excel Upload Error: ' .$e->getMessage());
             return back()->withErrors(['excel_error' => 'Failed to extract data. Make sure you used the exact template and did not delete any instruction rows.']);
         }
     }
 
-    public function resubmit(\Illuminate\Http\Request $request, \App\Models\DailyLessonLog $dll)
+    public function resubmit(\Illuminate\Http\Request $request, \App\Models\DailyLessonLog$dll)
     {
         $request->validate([
             'teacher_remarks' => 'nullable|string'
         ]);
 
-        $updatedNotes = $dll->reflection_notes;
+        $updatedNotes =$dll->reflection_notes;
         if ($request->filled('teacher_remarks')) {
             $updatedNotes .= "\n\n👩‍🏫 Teacher's Reply: " . $request->teacher_remarks;
         }
@@ -156,36 +155,36 @@ class DailyLessonLogController extends Controller
 
     public function show(Request $request, DailyLessonLog $dll): View
     {
+        // STRICT ACADEMIC PRIVACY: Only the authoring teacher or the School Head can view this. Admins are blocked.
         abort_unless(
-            $dll->author_id === $request->user()->id || in_array($request->user()->role, ['school_head', 'admin']),
+            $dll->author_id === $request->user()->id || $request->user()->hasRole('school_head'),
             403
         );
 
         return view('teacher.dll.show', compact('dll'));
     }
 
-    public function edit(Request $request, DailyLessonLog $dll): View
+    public function edit(Request $request, DailyLessonLog$dll): View
     {
-        abort_unless($dll->author_id === $request->user()->id, 403);
+        abort_unless($dll->author_id ===$request->user()->id, 403);
         return view('teacher.dll.edit', compact('dll'));
     }
 
-    public function update(Request $request, DailyLessonLog $dll): RedirectResponse|JsonResponse
+    public function update(Request $request, DailyLessonLog$dll): RedirectResponse|JsonResponse
     {
-        abort_unless($dll->author_id === $request->user()->id, 403);
+        abort_unless($dll->author_id ===$request->user()->id, 403);
         return $this->importOffline($request);
     }
 
-    public function destroy(Request $request, DailyLessonLog $dll): RedirectResponse
+    public function destroy(Request $request, DailyLessonLog$dll): RedirectResponse
     {
-        abort_unless($dll->author_id === $request->user()->id, 403);
-        $dll->delete();
+        abort_unless($dll->author_id === $request->user()->id, 403);$dll->delete();
         return redirect()->route('teacher.dll.index')->with('success', 'Weekly Lesson Log deleted successfully.');
     }
 
-    public function saveEntry(Request $request, DailyLessonLog $dll, $date)
+    public function saveEntry(Request $request, DailyLessonLog $dll,$date)
     {
-        $data = $request->validate([
+        $data =$request->validate([
             'procedure_a' => 'nullable|string',
             'procedure_b' => 'nullable|string',
             'procedure_c' => 'nullable|string',
@@ -195,8 +194,7 @@ class DailyLessonLogController extends Controller
         ]);
 
         $dll->entries()->updateOrCreate(
-            ['entry_date' => $date],
-            $data
+            ['entry_date' => $date],$data
         );
 
         return response()->json(['message' => 'Saved successfully']);
@@ -204,7 +202,7 @@ class DailyLessonLogController extends Controller
 
     public function storeProfile(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $validated =$request->validate([
             'subject' => ['required', 'string', 'max:255'],
             'grade_level' => ['required', 'string', 'max:255'],
         ]);
@@ -218,16 +216,39 @@ class DailyLessonLogController extends Controller
         return redirect()->route('teacher.dll.index')->with('success', 'Subject Profile saved successfully.');
     }
 
-    public function week(Request $request, DailyLessonLog $dll): View
+    public function updateProfile(Request $request,$id): RedirectResponse
     {
-        abort_unless($dll->author_id === $request->user()->id, 403);
+        $profile = TeachingLoad::where('teacher_id', $request->user()->id)->findOrFail($id);
 
-        $entries = $dll->entries()->orderBy('entry_date')->get()->keyBy(fn($e) => $e->entry_date->toDateString());
+        $validated =$request->validate([
+            'subject' => ['required', 'string', 'max:255'],
+            'grade_level' => ['required', 'string', 'max:255'],
+        ]);
+
+        $profile->update([
+            'subject' => $validated['subject'],
+            'grade_level' => $validated['grade_level'],
+        ]);
+
+        return redirect()->route('teacher.dll.index')->with('success', 'Subject Profile updated successfully.');
+    }
+
+    public function destroyProfile(Request $request,$id): RedirectResponse
+    {
+        $profile = TeachingLoad::where('teacher_id',$request->user()->id)->findOrFail($id);$profile->delete();
+
+        return redirect()->route('teacher.dll.index')->with('success', 'Subject Profile deleted successfully.');
+    }
+
+    public function week(Request $request, DailyLessonLog$dll): View
+    {
+        abort_unless($dll->author_id ===$request->user()->id, 403);
+
+        $entries =$dll->entries()->orderBy('entry_date')->get()->keyBy(fn($e) =>$e->entry_date->toDateString());
 
         $weekDays = [];
         if ($dll->week_start_date) {
-            for ($i = 0; $i < 5; $i++) {
-                $weekDays[] = $dll->week_start_date->copy()->addDays($i)->toDateString();
+            for ($i = 0; $i < 5; $i++) {$weekDays[] = $dll->week_start_date->copy()->addDays($i)->toDateString();
             }
         }
 
@@ -237,15 +258,15 @@ class DailyLessonLogController extends Controller
     // =========================================================================
     // THE NEW PRE-FLIGHT COMPLIANCE SCANNER (LIVE AI CONNECTION)
     // =========================================================================
-    public function scanCompliance(Request $request, DailyLessonLog $dll)
+    public function scanCompliance(Request $request, DailyLessonLog$dll)
     {
-        $data = $request->validate([
+        $data =$request->validate([
             'lesson_context' => 'required|string',
             'previous_feedback' => 'nullable|string'
         ]);
 
-        $lessonContext = $data['lesson_context'];
-        $previousFeedback = $data['previous_feedback'] ?? 'No previous feedback provided.';
+        $lessonContext =$data['lesson_context'];
+        $previousFeedback =$data['previous_feedback'] ?? 'No previous feedback provided.';
 
         $prompt = "You are a strict, expert DepEd Master Teacher conducting a Pre-Flight Compliance Check on a Weekly Lesson Log.
         Analyze the submitted week-long lesson plan.

@@ -1,6 +1,20 @@
 <x-app-layout>
-    {{-- Centralized Alpine State for Modals and Excel Modes --}}
-    <div class="py-8 min-h-[calc(100vh-10rem)] bg-slate-50/50" x-data="{ showProfileModal: false, showExcelModal: false, excelMode: 'download' }">
+    {{-- Centralized Alpine State for Modals, Excel Modes, and Profile Editing --}}
+    <div class="py-8 min-h-[calc(100vh-10rem)] bg-slate-50/50" x-data="{
+        showProfileModal: false,
+        showEditProfileModal: false,
+        editUrl: '',
+        editSubject: '',
+        editGrade: '',
+        showExcelModal: false,
+        excelMode: 'download',
+        openEditProfile(url, subject, grade) {
+            this.editUrl = url;
+            this.editSubject = subject;
+            this.editGrade = grade;
+            this.showEditProfileModal = true;
+        }
+    }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
             {{-- HEADER SECTION --}}
@@ -24,7 +38,7 @@
                         + Draft Online
                     </a>
 
-                    {{-- NEW: Excel Offline Drafting Button --}}
+                    {{-- Excel Offline Drafting Button --}}
                     <button @click="showExcelModal = true"
                         class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-emerald-700">
                         📊 Draft through Excel
@@ -75,9 +89,30 @@
                                     class="px-2 py-1 text-[9px] font-black uppercase tracking-widest rounded bg-slate-100 text-slate-500">
                                     Subject
                                 </span>
-                                <span class="text-xl">
-                                    {{ $profile->subject == 'Science' ? '🧬' : ($profile->subject == 'Mathematics' ? '➗' : '📘') }}
-                                </span>
+                                <div class="flex items-center gap-1">
+                                    {{-- Edit Button --}}
+                                    <button
+                                        @click="openEditProfile('{{ route('teacher.dll.profile.update', $profile->id) }}', '{{ $profile->subject }}', '{{ $profile->grade_level }}')"
+                                        class="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                        title="Edit Profile">
+                                        ✏️
+                                    </button>
+                                    {{-- Delete Form --}}
+                                    <form action="{{ route('teacher.dll.profile.destroy', $profile->id) }}"
+                                        method="POST" class="m-0 inline"
+                                        onsubmit="return confirm('Delete this teaching load profile?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                            class="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                            title="Delete Profile">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                    <span class="text-xl ml-2">
+                                        {{ $profile->subject == 'Science' ? '🧬' : ($profile->subject == 'Mathematics' ? '➗' : '📘') }}
+                                    </span>
+                                </div>
                             </div>
 
                             <h4 class="font-black text-slate-900 text-lg">{{ $profile->subject }}</h4>
@@ -248,7 +283,8 @@
                                                         🔄 Resubmit
                                                     </button>
 
-                                                    <div x-show="showReply" @click.away="showReply = false" x-transition
+                                                    <div x-show="showReply" @click.away="showReply = false"
+                                                        x-transition
                                                         class="absolute bottom-full right-0 mb-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 p-4 z-50 text-left">
                                                         <form action="{{ route('teacher.dll.resubmit', $dll) }}"
                                                             method="POST">
@@ -306,6 +342,84 @@
                         {{ $dailyLessonLogs->links() }}
                     </div>
                 @endif
+            </div>
+        </div>
+
+        {{-- MODAL: Edit Subject Profile --}}
+        <div x-show="showEditProfileModal" style="display: none;" class="relative z-50">
+            <div x-show="showEditProfileModal" x-transition.opacity
+                class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"></div>
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div x-show="showEditProfileModal" @click.away="showEditProfileModal = false"
+                        class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-100">
+                        <div
+                            class="bg-slate-50/50 px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
+                                    ✏️</div>
+                                <div>
+                                    <h3 class="text-lg font-black text-slate-900">Edit Subject Profile</h3>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Update
+                                        your teaching load details</p>
+                                </div>
+                            </div>
+                            <button @click="showEditProfileModal = false"
+                                class="text-slate-400 hover:text-slate-600 transition-colors">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="px-6 py-6">
+                            <form :action="editUrl" method="POST" class="space-y-5">
+                                @csrf
+                                @method('PUT')
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Subject
+                                        Name</label>
+                                    <select name="subject" x-model="editSubject" required
+                                        class="w-full bg-slate-50 border-slate-200 rounded-xl focus:ring-amber-500 text-sm font-medium text-slate-700 cursor-pointer">
+                                        <option value="">-- Select Subject --</option>
+                                        <option value="Science">Science</option>
+                                        <option value="Mathematics">Mathematics</option>
+                                        <option value="English">English</option>
+                                        <option value="Filipino">Filipino</option>
+                                        <option value="Araling Panlipunan">Araling Panlipunan</option>
+                                        <option value="MAPEH">MAPEH</option>
+                                        <option value="TLE">TLE / TLE-HE</option>
+                                        <option value="Values Education">Values Education</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Grade
+                                        Level</label>
+                                    <select name="grade_level" x-model="editGrade" required
+                                        class="w-full bg-slate-50 border-slate-200 rounded-xl focus:ring-amber-500 text-sm font-medium text-slate-700 cursor-pointer">
+                                        <option value="">-- Select Grade --</option>
+                                        <option value="Grade 7">Grade 7</option>
+                                        <option value="Grade 8">Grade 8</option>
+                                        <option value="Grade 9">Grade 9</option>
+                                        <option value="Grade 10">Grade 10</option>
+                                    </select>
+                                </div>
+                                <div
+                                    class="bg-slate-50/50 pt-4 mt-6 border-t border-slate-100 flex items-center justify-end gap-3">
+                                    <button type="button" @click="showEditProfileModal = false"
+                                        class="px-5 py-2.5 text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-200 rounded-xl transition-colors">Cancel</button>
+                                    <button type="submit"
+                                        class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md transition-all">Update
+                                        Profile</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
