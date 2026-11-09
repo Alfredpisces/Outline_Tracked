@@ -5,49 +5,45 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory;
 use App\Models\User;
-use App\Models\AssetTransaction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 
 class AdminInventoryController extends Controller
 {
     /**
-     * Display a listing of the inventory.
+     * Display the Master Inventory dashboard and Proactive Action Center.
      */
-    public function index(Request $request): View
+    public function index()
     {
-        $query = Inventory::with('assignee')->latest();
+        // 1. Fetch the main inventory list with pagination and eager load the assignee
+        $inventories = Inventory::with('assignee')->latest()->paginate(15);
 
-        // Optional filtering by category or condition
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
-        }
-        if ($request->filled('condition')) {
-            $query->where('condition', $request->condition);
-        }
-
-        $inventories = $query->paginate(15);
-
-        // Identify items that need restocking (Consumables below reorder level)
-        $lowStockAlerts = Inventory::where('lifespan_type', 'Consumable')
-            ->whereNotNull('reorder_level')
-            ->whereRaw('quantity <= reorder_level')
+        // 2. Calculate Low Stock Alerts (Quantity <= Reorder Level)
+        $lowStockAlerts = Inventory::whereNotNull('reorder_level')
+            ->whereColumn('quantity', '<=', 'reorder_level')
             ->get();
 
-        return view('admin.inventory.index', compact('inventories', 'lowStockAlerts'));
+        // 3. Calculate Expiring / End-of-Life Alerts safely
+        // If the 'expiry_date' column doesn't exist in MySQL, it safely returns an empty collection instead of crashing
+        $expiringAlerts = Schema::hasColumn('inventories', 'expiry_date')
+            ? Inventory::whereNotNull('expiry_date')
+                ->where('expiry_date', '<=', Carbon::now()->addDays(90))
+                ->orderBy('expiry_date', 'asc')
+                ->get()
+            : collect();
+
+        return view('admin.inventory.index', compact('inventories', 'lowStockAlerts', 'expiringAlerts'));
     }
 
     /**
-     * Show the form for creating a new asset.
+     * Show the form for manually creating a new asset.
      */
-    public function create(): View
+    public function create()
     {
-        // Fetch all teachers/staff to populate the "Assigned To" dropdown
-        $users = User::whereIn('role', ['teacher', 'admin', 'counselor', 'school_head'])
-                     ->orderBy('last_name')
-                     ->get();
+        // Fetch users to populate the "Assigned To" dropdown (Teachers, Staff, etc.)
+        $users = User::orderBy('last_name')->get();
 
         return view('admin.inventory.create', compact('users'));
     }
@@ -58,51 +54,48 @@ class AdminInventoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'property_number' => ['nullable', 'string', 'max:255', 'unique:inventories'],
-            'item_name'       => ['required', 'string', 'max:255'],
-            'category'        => ['required', 'string', 'max:255'],
-            'lifespan_type'   => ['required', 'in:Consumable,Semi-Expendable,Non-Expendable'],
-            'condition'       => ['required', 'in:Serviceable,Needs Minor Repair,Needs Major Repair,Unserviceable,Missing'],
-            'quantity'        => ['required', 'integer', 'min:0'],
-            'unit'            => ['required', 'string', 'max:50'],
-            'reorder_level'   => ['nullable', 'integer', 'min:0'],
-            'assignment_type' => ['required', 'in:Personal,Facility'],
-            'location'        => ['nullable', 'string', 'max:255'],
-            'assigned_to'     => ['nullable', 'exists:users,id'],
-            'funding_source'  => ['nullable', 'in:MOOE,SEF / LGU,PTA,Donation,National / DepEd Central'],
-            'date_acquired'   => ['nullable', 'date'],
-            'photo'           => ['nullable', 'image', 'max:2048'],
+            'item_name' => 'required|string|max:255',
+            'category' => 'required|string|max:255',
+            'property_number' => 'nullable|string|unique:inventories,property_number|max:255',
+            'lifespan_type' => 'required|in:Non-Expendable,Semi-Expendable,Consumable',
+            'quantity' => 'required|integer|min:0',
+            'unit' => 'required|string|max:50',
+            'condition' => 'required|in:Serviceable,Needs Minor Repair,Needs Major Repair,Unserviceable,Missing',
+            'reorder_level' => 'nullable|integer|min:0',
+            'assignment_type' => 'required|in:Facility,Personal',
+            'location' => 'nullable|string|max:255',
+            'assigned_to' => 'nullable|exists:users,id',
+            'funding_source' => 'nullable|string|max:255',
+            'date_acquired' => 'nullable|date',
+            'expiry_date' => 'nullable|date',
+            'photo' => 'nullable|image|max:2048', // Max 2MB image
         ]);
 
+        // Handle Photo Upload
         if ($request->hasFile('photo')) {
             $validated['photo_path'] = $request->file('photo')->store('inventory_photos', 'public');
         }
 
-        $inventory = Inventory::create($validated);
+        // Remove the 'photo' key from the array as we use 'photo_path' in the DB
+        unset($validated['photo']);
 
-        // Automated Audit Trail: Initial Stock Entry
-        AssetTransaction::create([
-            'inventory_id' => $inventory->id,
-            'user_id'      => Auth::id(),
-            'action_type'  => 'Added Stock',
-            'quantity'     => $inventory->quantity,
-            'status'       => 'Completed',
-            'notes'        => 'Initial inventory registration by Property Custodian.',
-        ]);
+        // Remove expiry_date if column is not in DB to prevent insert error
+        if (!Schema::hasColumn('inventories', 'expiry_date')) {
+            unset($validated['expiry_date']);
+        }
+
+        Inventory::create($validated);
 
         return redirect()->route('admin.inventory.index')
-                         ->with('success', 'Asset successfully added to the master inventory.');
+            ->with('success', 'New asset successfully registered to the Master Inventory.');
     }
 
     /**
      * Show the form for editing the specified asset.
      */
-    public function edit(Inventory $inventory): View
+    public function edit(Inventory $inventory)
     {
-        $users = User::whereIn('role', ['teacher', 'admin', 'counselor', 'school_head'])
-                     ->orderBy('last_name')
-                     ->get();
-
+        $users = User::orderBy('last_name')->get();
         return view('admin.inventory.edit', compact('inventory', 'users'));
     }
 
@@ -112,23 +105,24 @@ class AdminInventoryController extends Controller
     public function update(Request $request, Inventory $inventory)
     {
         $validated = $request->validate([
-            'property_number' => ['nullable', 'string', 'max:255', 'unique:inventories,property_number,' . $inventory->id],
-            'item_name'       => ['required', 'string', 'max:255'],
-            'category'        => ['required', 'string', 'max:255'],
-            'lifespan_type'   => ['required', 'in:Consumable,Semi-Expendable,Non-Expendable'],
-            'condition'       => ['required', 'in:Serviceable,Needs Minor Repair,Needs Major Repair,Unserviceable,Missing'],
-            'quantity'        => ['required', 'integer', 'min:0'],
-            'unit'            => ['required', 'string', 'max:50'],
-            'reorder_level'   => ['nullable', 'integer', 'min:0'],
-            'assignment_type' => ['required', 'in:Personal,Facility'],
-            'location'        => ['nullable', 'string', 'max:255'],
-            'assigned_to'     => ['nullable', 'exists:users,id'],
-            'funding_source'  => ['nullable', 'in:MOOE,SEF / LGU,PTA,Donation,National / DepEd Central'],
-            'date_acquired'   => ['nullable', 'date'],
-            'photo'           => ['nullable', 'image', 'max:2048'],
+            'item_name' => 'required|string|max:255',
+            'category' => 'required|string|max:255',
+            'property_number' => 'nullable|string|max:255|unique:inventories,property_number,' . $inventory->id,
+            'lifespan_type' => 'required|in:Non-Expendable,Semi-Expendable,Consumable',
+            'quantity' => 'required|integer|min:0',
+            'unit' => 'required|string|max:50',
+            'condition' => 'required|in:Serviceable,Needs Minor Repair,Needs Major Repair,Unserviceable,Missing',
+            'reorder_level' => 'nullable|integer|min:0',
+            'assignment_type' => 'required|in:Facility,Personal',
+            'location' => 'nullable|string|max:255',
+            'assigned_to' => 'nullable|exists:users,id',
+            'funding_source' => 'nullable|string|max:255',
+            'date_acquired' => 'nullable|date',
+            'expiry_date' => 'nullable|date',
+            'photo' => 'nullable|image|max:2048',
         ]);
 
-        // Handle File Upload & Cleanup old photo
+        // Handle Photo Upload & Deletion of old photo
         if ($request->hasFile('photo')) {
             if ($inventory->photo_path) {
                 Storage::disk('public')->delete($inventory->photo_path);
@@ -136,25 +130,16 @@ class AdminInventoryController extends Controller
             $validated['photo_path'] = $request->file('photo')->store('inventory_photos', 'public');
         }
 
-        // Check if condition changed to trigger Automated Audit Trail
-        $oldCondition = $inventory->condition;
-        $newCondition = $validated['condition'];
+        unset($validated['photo']);
+
+        if (!Schema::hasColumn('inventories', 'expiry_date')) {
+            unset($validated['expiry_date']);
+        }
 
         $inventory->update($validated);
 
-        if ($oldCondition !== $newCondition) {
-            AssetTransaction::create([
-                'inventory_id' => $inventory->id,
-                'user_id'      => Auth::id(),
-                'action_type'  => 'Condition Change',
-                'quantity'     => $inventory->quantity,
-                'status'       => 'Completed',
-                'notes'        => "Condition updated from {$oldCondition} to {$newCondition}.",
-            ]);
-        }
-
         return redirect()->route('admin.inventory.index')
-                         ->with('success', 'Asset details updated successfully.');
+            ->with('success', 'Asset details have been successfully updated.');
     }
 
     /**
@@ -162,6 +147,7 @@ class AdminInventoryController extends Controller
      */
     public function destroy(Inventory $inventory)
     {
+        // Delete the photo from storage if it exists
         if ($inventory->photo_path) {
             Storage::disk('public')->delete($inventory->photo_path);
         }
@@ -169,6 +155,6 @@ class AdminInventoryController extends Controller
         $inventory->delete();
 
         return redirect()->route('admin.inventory.index')
-                         ->with('success', 'Asset permanently removed from inventory.');
+            ->with('success', 'Asset has been permanently removed from the registry.');
     }
 }

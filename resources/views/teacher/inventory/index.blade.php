@@ -6,7 +6,7 @@
                     My Assigned Inventory
                 </h2>
                 <p class="mt-1 text-sm text-slate-500">
-                    Review your personal issuances and manage facility assets assigned to your care.
+                    Review your personal issuances, manage facility assets, and declare personal classroom belongings.
                 </p>
             </div>
         </div>
@@ -15,7 +15,7 @@
     <div class="bg-slate-50 py-8 sm:py-10 min-h-[calc(100vh-10rem)]">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
 
-            {{-- SECTION 1: Personal Issuances --}}
+            {{-- SECTION 1: Personal Issuances (DepEd Government Assets) --}}
             <section>
                 <div class="mb-4 flex items-center gap-3">
                     <div
@@ -28,7 +28,7 @@
                     <div>
                         <h3 class="text-lg font-black text-slate-900">Personal Accountability</h3>
                         <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Laptops, Tablets, &
-                            Direct Issuances</p>
+                            Direct Issuances (PAR/ICS)</p>
                     </div>
                 </div>
 
@@ -117,7 +117,7 @@
                 </div>
             </section>
 
-            {{-- SECTION 2: Facility & Lab Assets --}}
+            {{-- SECTION 2: Facility & Lab Assets (DepEd Government Assets) --}}
             <section>
                 <div class="mb-4 flex items-center gap-3">
                     <div
@@ -189,6 +189,121 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </section>
+
+            {{-- SECTION 3: Teacher-Owned Property (Declared Personal Belongings) --}}
+            <section x-data="{ openModal: false }">
+                <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-600 ring-1 ring-violet-200">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-slate-900">Teacher-Owned Property Declarations</h3>
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Personal
+                                Classroom Equipment (Non-DepEd Property)</p>
+                        </div>
+                    </div>
+                    <div>
+                        <button @click="openModal = true" type="button"
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-violet-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4" />
+                            </svg>
+                            Declare Personal Item
+                        </button>
+                    </div>
+                </div>
+
+                <div class="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead
+                                class="bg-slate-50/80 border-b border-slate-200 text-xs uppercase tracking-widest text-slate-500">
+                                <tr>
+                                    <th class="px-6 py-4 font-black">Item Description</th>
+                                    <th class="px-6 py-4 font-black">Serial / Model No.</th>
+                                    <th class="px-6 py-4 font-black">Classroom Location</th>
+                                    <th class="px-6 py-4 font-black">Ownership Status</th>
+                                    <th class="px-6 py-4 font-black text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {{-- Placeholder Row Example --}}
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-slate-900">Epson EcoTank L3210 (Personal Printer)
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5">Declared on: Aug 15, 2026</div>
+                                    </td>
+                                    <td class="px-6 py-4 font-semibold text-slate-700">SN: X8923-4910</td>
+                                    <td class="px-6 py-4 font-medium text-slate-600">Room 102 (Science Lab)</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-violet-800 ring-1 ring-inset ring-violet-200">
+                                            Teacher-Owned
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button type="button"
+                                            class="text-xs font-bold text-slate-400 hover:text-rose-600 transition">
+                                            Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {{-- Simple Declarations Modal --}}
+                <div x-show="openModal"
+                    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+                    style="display: none;">
+                    <div @click.away="openModal = false"
+                        class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden p-6 sm:p-8 space-y-6">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                            <h3 class="text-lg font-black text-slate-900">Declare Personal Classroom Item</h3>
+                            <button @click="openModal = false"
+                                class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label
+                                    class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Item
+                                    Name & Brand</label>
+                                <input type="text" placeholder="e.g. Asahi Stand Fan, Personal Laptop"
+                                    class="w-full rounded-xl border-slate-300 text-sm font-semibold">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Serial
+                                    Number / Model</label>
+                                <input type="text" placeholder="e.g. SN-12345678"
+                                    class="w-full rounded-xl border-slate-300 text-sm font-semibold">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Classroom
+                                    / Location</label>
+                                <input type="text" placeholder="e.g. Grade 8 - Rizal Room"
+                                    class="w-full rounded-xl border-slate-300 text-sm font-semibold">
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                            <button @click="openModal = false" type="button"
+                                class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
+                            <button @click="openModal = false" type="button"
+                                class="px-5 py-2.5 rounded-xl bg-violet-600 text-xs font-black text-white hover:bg-violet-700">Save
+                                Declaration</button>
+                        </div>
                     </div>
                 </div>
             </section>

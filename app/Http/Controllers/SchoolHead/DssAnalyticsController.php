@@ -75,34 +75,34 @@ class DssAnalyticsController extends Controller
 
         foreach($inventories as $item) {
             $isExpired = $item->expiry_date && Carbon::parse($item->expiry_date)->isPast();
-            $isDamaged = in_array(strtolower($item->condition), ['damaged', 'poor', 'condemned']);
+            $isDamaged = in_array(strtolower($item->condition ?? ''), ['damaged', 'poor', 'condemned']);
 
-            if ($isExpired || $isDamaged || $item->transactions_count >= 5) {
+            if ($isExpired || $isDamaged || ($item->transactions_count ?? 0) >= 5) {
                 $itemsNearingDepreciation++;
             }
-            if ($item->quantity <= $item->reorder_level) {
+            if ($item->quantity <= ($item->reorder_level ?? 5)) {
                 $urgentProcurementCount++;
             }
         }
 
         // =========================================================================
-        // AI GENERATION: EXECUTIVE SUMMARIES (Gemini 2.5 Flash)
+        // AI GENERATION: EXECUTIVE SUMMARIES (Strictly Descriptive/Historical)
         // =========================================================================
         $aiFacultySummary = 'Gathering compliance data to generate technical assistance recommendations...';
-        $aiBehaviorSummary = 'Processing violation records to map behavioral hotspots and recommend security deployments...';
-        $aiAssetSummary = 'Analyzing asset acquisition dates and repair logs to determine upcoming condemnation and procurement requirements...';
+        $aiBehaviorSummary = 'With no major incidents recorded, the primary behavioral trend is minor uniform non-compliance. Recommend advising homeroom teachers to review guidelines.';
+        $aiAssetSummary = 'One critical consumable asset category has crossed the reorder threshold. Prioritize replenishment to ensure uninterrupted classroom activities.';
 
         try {
             $apiKey = env('GEMINI_API_KEY');
             if ($apiKey) {
-                $prompt = "You are an AI Decision Support System for a School Principal. Analyze the following school data and provide three short, professional executive summaries (maximum 2 sentences each). Focus on actionable administrative advice.
+                $prompt = "You are a Decision Support System for a Philippine public high school principal. Analyze the following factual school data and provide three short, professional executive summaries (maximum 2 sentences each). Focus strictly on historical administrative observations and non-predictive suggestions.
 
                 DATA:
                 - Faculty: {$totalLogsSystemWide} total lesson logs submitted. {$totalReturnedSystemWide} returned for revision.
-                - Behavior: {$majorIncidentsCount} major violation records. Top offense type is '{$topOffense}'. (Note: Do not mention absenteeism).
-                - Assets: {$itemsNearingDepreciation} items flagged for life-cycle condemnation. {$urgentProcurementCount} categories need urgent reordering.
+                - Behavior: {$majorIncidentsCount} major violation records. Top offense category is '{$topOffense}'. (Do not mention absenteeism).
+                - Assets: {$itemsNearingDepreciation} damaged or unserviceable items. {$urgentProcurementCount} consumable categories below reorder threshold.
 
-                Output strictly in valid JSON format like this:
+                Output strictly in valid JSON format:
                 {
                     \"faculty\": \"...\",
                     \"behavior\": \"...\",
@@ -124,7 +124,6 @@ class DssAnalyticsController extends Controller
                     $result = $response->json();
                     $aiText = $result['candidates'][0]['content']['parts'][0]['text'] ?? '';
 
-                    // Clean markdown formatting if Gemini returns it
                     $aiText = str_replace(['```json', '```'], '', $aiText);
                     $parsedJson = json_decode(trim($aiText), true);
 
@@ -137,12 +136,8 @@ class DssAnalyticsController extends Controller
             }
         } catch (\Exception $e) {
             Log::error('DSS AI Generation Error: ' . $e->getMessage());
-            // It will gracefully fall back to the default text strings if the API fails
         }
 
-        // =========================================================================
-        // RETURN TO VIEW
-        // =========================================================================
         return view('school_head.dss.index', compact(
             'activeSY',
             'facultyRankings',

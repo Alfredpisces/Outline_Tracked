@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AssetTransaction extends Model
 {
+    
     use HasFactory;
 
     protected $fillable = [

@@ -1,0 +1,384 @@
+C:\laragon\www\tracked
+├── 'school_head']
+├── .editorconfig
+├── .env
+├── .env.example
+├── .gitattributes
+├── .github
+│   └── workflows
+│       └── ci.yml
+├── .gitignore
+├── .npmrc
+├── README.md
+├── app
+│   ├── Exports
+│   │   ├── DLLTemplateExport.php
+│   │   └── DllChecklistExport.php
+│   ├── Http
+│   │   ├── Controllers
+│   │   │   ├── Admin
+│   │   │   │   ├── AdminInventoryController.php
+│   │   │   │   ├── ClearanceController.php
+│   │   │   │   ├── DashboardController.php
+│   │   │   │   ├── LisSyncController.php
+│   │   │   │   ├── MasterInventoryController.php
+│   │   │   │   ├── PersonnelController.php
+│   │   │   │   ├── SettingController.php
+│   │   │   │   └── StudentController.php
+│   │   │   ├── Auth
+│   │   │   │   ├── AuthenticatedSessionController.php
+│   │   │   │   ├── ConfirmablePasswordController.php
+│   │   │   │   ├── EmailVerificationNotificationController.php
+│   │   │   │   ├── EmailVerificationPromptController.php
+│   │   │   │   ├── NewPasswordController.php
+│   │   │   │   ├── PasswordController.php
+│   │   │   │   ├── PasswordResetLinkController.php
+│   │   │   │   ├── RegisteredUserController.php
+│   │   │   │   ├── RoleSwitchController.php
+│   │   │   │   └── VerifyEmailController.php
+│   │   │   ├── Controller.php
+│   │   │   ├── Counselor
+│   │   │   │   ├── DashboardController.php
+│   │   │   │   ├── GoodMoralController.php
+│   │   │   │   ├── IncidentReviewController.php
+│   │   │   │   └── ViolatorController.php
+│   │   │   ├── DashboardController.php
+│   │   │   ├── GlobalCopilotController.php
+│   │   │   ├── ProfileController.php
+│   │   │   ├── PublicTipController.php
+│   │   │   ├── SchoolHead
+│   │   │   │   ├── BehavioralOversightController.php
+│   │   │   │   ├── CotController.php
+│   │   │   │   ├── DashboardController.php
+│   │   │   │   ├── DllApprovalController.php
+│   │   │   │   ├── DssAnalyticsController.php
+│   │   │   │   ├── ReportController.php
+│   │   │   │   └── SchoolheadInventoryController.php
+│   │   │   └── Teacher
+│   │   │       ├── AiAssistantController.php
+│   │   │       ├── ClearanceController.php
+│   │   │       ├── CotController.php
+│   │   │       ├── DailyLessonLogController.php
+│   │   │       ├── DashboardController.php
+│   │   │       ├── IncidentController.php
+│   │   │       ├── IncidentManagerController.php
+│   │   │       ├── PerformanceController.php
+│   │   │       ├── PortfolioController.php
+│   │   │       ├── TeacherIncidentManager.php
+│   │   │       └── TeacherInventoryController.php
+│   │   ├── Middleware
+│   │   │   ├── EnsureUserHasPermission.php
+│   │   │   ├── EnsureUserHasRole.php
+│   │   │   └── EnsureUserIsActive.php
+│   │   └── Requests
+│   │       ├── Admin
+│   │       │   ├── StoreAssetAssignmentRequest.php
+│   │       │   ├── StorePersonnelRequest.php
+│   │       │   ├── SyncLisRequest.php
+│   │       │   └── UpdatePersonnelRequest.php
+│   │       ├── Auth
+│   │       │   └── LoginRequest.php
+│   │       ├── Counselor
+│   │       │   ├── GenerateGoodMoralRequest.php
+│   │       │   └── ResolveIncidentRequest.php
+│   │       ├── ProfileUpdateRequest.php
+│   │       └── Teacher
+│   │           ├── StoreDailyLessonLogRequest.php
+│   │           ├── StoreIncidentRequest.php
+│   │           ├── StoreProfessionalGrowthRequest.php
+│   │           └── UpdateDailyLessonLogRequest.php
+│   ├── Imports
+│   │   └── Sf1Import.php
+│   ├── Livewire
+│   │   ├── DssActionDesk.php
+│   │   ├── GlobalCopilot.php
+│   │   └── SystemGuideChat.php
+│   ├── Models
+│   │   ├── Asset.php
+│   │   ├── AssetTransaction.php
+│   │   ├── CotObservation.php
+│   │   ├── CotRating.php
+│   │   ├── CounselingIntervention.php
+│   │   ├── DailyLessonLog.php
+│   │   ├── DllEntry.php
+│   │   ├── IncidentReport.php
+│   │   ├── Inventory.php
+│   │   ├── LisStaging.php
+│   │   ├── Permission.php
+│   │   ├── PortfolioItem.php
+│   │   ├── ProfessionalGrowth.php
+│   │   ├── PublicTip.php
+│   │   ├── Role.php
+│   │   ├── Setting.php
+│   │   ├── Student.php
+│   │   ├── TeachingLoad.php
+│   │   ├── User.php
+│   │   └── UserPermission.php
+│   ├── Providers
+│   │   └── AppServiceProvider.php
+│   ├── Services
+│   │   ├── Ai
+│   │   │   └── DllPrecheckerClient.php
+│   │   ├── TrackEdCoTeacher.php
+│   │   └── TrackEdSmartEngine.php
+│   └── View
+│       └── Components
+│           ├── AppLayout.php
+│           └── GuestLayout.php
+├── artisan
+├── bootstrap
+│   ├── app.php
+│   ├── cache
+│   │   ├── .gitignore
+│   │   ├── packages.php
+│   │   └── services.php
+│   └── providers.php
+├── bundle.php
+├── composer.json
+├── composer.lock
+├── config
+│   ├── app.php
+│   ├── auth.php
+│   ├── cache.php
+│   ├── database.php
+│   ├── filesystems.php
+│   ├── logging.php
+│   ├── mail.php
+│   ├── queue.php
+│   ├── sanctum.php
+│   ├── services.php
+│   └── session.php
+├── database
+│   ├── .gitignore
+│   ├── database.sqlite
+│   ├── factories
+│   │   └── UserFactory.php
+│   ├── migrations
+│   │   ├── 0001_01_01_000000_create_users_table.php
+│   │   ├── 0001_01_01_000001_create_cache_table.php
+│   │   ├── 0001_01_01_000002_create_jobs_table.php
+│   │   ├── 2026_05_20_044438_create_permissions_table.php
+│   │   ├── 2026_05_20_044455_create_user_permissions_table.php
+│   │   ├── 2026_05_20_045032_create_daily_lesson_logs_table.php
+│   │   ├── 2026_05_21_160500_create_domain_module_tables.php
+│   │   ├── 2026_05_22_051119_create_roles_table.php
+│   │   ├── 2026_05_22_062532_create_professional_growths_table.php
+│   │   ├── 2026_05_22_082428_add_school_year_to_students_table.php
+│   │   ├── 2026_05_23_080128_create_lis_stagings_table.php
+│   │   ├── 2026_05_25_044736_add_evidence_path_to_incident_reports_table.php
+│   │   ├── 2026_06_01_151244_create_daily_lesson_logs_table.php
+│   │   ├── 2026_06_02_022714_create_teaching_loads_table.php
+│   │   ├── 2026_06_02_030107_add_week_fields_to_daily_lesson_logs_table.php
+│   │   ├── 2026_06_02_030132_create_dll_entries_table.php
+│   │   ├── 2026_06_22_034421_add_profiling_columns_to_users_table.php
+│   │   ├── 2026_06_22_185153_create_permissions_and_pivot_tables.php
+│   │   ├── 2026_06_24_041719_create_cot_observations_table.php
+│   │   ├── 2026_06_25_152641_create_portfolio_items_table.php
+│   │   ├── 2026_06_25_155733_add_missing_columns_to_portfolio_items_table.php
+│   │   ├── 2026_07_01_154645_alter_incident_reports_enum_values.php
+│   │   ├── 2026_07_02_013204_create_settings_table.php
+│   │   ├── 2026_07_03_010941_create_inventories_table.php
+│   │   ├── 2026_07_03_011010_create_asset_transactions_table.php
+│   │   ├── 2026_07_07_074948_create_public_tips_table.php
+│   │   └── 2026_07_20_070906_create_personal_access_tokens_table.php
+│   └── seeders
+│       ├── DatabaseSeeder.php
+│       ├── PermissionSeeder.php
+│       ├── RoleSeeder.php
+│       └── UserSeeder.php
+├── docs
+│   ├── AI_PRECHECKER.md
+│   ├── API.md
+│   ├── ARCHITECTURE.md
+│   ├── DB_SCHEMA.md
+│   ├── DEPLOY.md
+│   ├── ENV.md
+│   ├── OFFLINE_DLL.md
+│   ├── RUNBOOK.md
+│   ├── SECURITY.md
+│   └── openapi.yaml
+├── package-lock.json
+├── package.json
+├── phpunit.xml
+├── postcss.config.js
+├── public
+│   ├── .htaccess
+│   ├── build
+│   │   ├── assets
+│   │   │   ├── app-Bbcuu3Xt.js
+│   │   │   └── app-CeMKAusX.css
+│   │   └── manifest.json
+│   ├── check_zip.php
+│   ├── debug.php
+│   ├── favicon.ico
+│   ├── find_my_ini.php
+│   ├── images
+│   │   └── school-logo.png
+│   ├── index.php
+│   ├── info.php
+│   ├── robots.txt
+│   ├── sw.js
+│   └── test_zip.php
+├── resources
+│   ├── css
+│   │   └── app.css
+│   ├── js
+│   │   ├── app.js
+│   │   └── dll-offline.js
+│   └── views
+│       ├── admin
+│       │   ├── dashboard.blade.php
+│       │   ├── inventory
+│       │   │   ├── create.blade.php
+│       │   │   ├── edit.blade.php
+│       │   │   └── index.blade.php
+│       │   ├── lis_sync
+│       │   │   ├── edit.blade.php
+│       │   │   ├── index.blade.php
+│       │   │   ├── manage.blade.php
+│       │   │   └── reset.blade.php
+│       │   ├── personnel
+│       │   │   ├── edit.blade.php
+│       │   │   └── index.blade.php
+│       │   └── settings
+│       │       └── index.blade.php
+│       ├── auth
+│       │   ├── confirm-password.blade.php
+│       │   ├── forgot-password.blade.php
+│       │   ├── login.blade.php
+│       │   ├── register.blade.php
+│       │   ├── reset-password.blade.php
+│       │   ├── role-select.blade.php
+│       │   └── verify-email.blade.php
+│       ├── components
+│       │   ├── application-logo.blade.php
+│       │   ├── auth-session-status.blade.php
+│       │   ├── c-sidebar.blade.php
+│       │   ├── danger-button.blade.php
+│       │   ├── dropdown-link.blade.php
+│       │   ├── dropdown.blade.php
+│       │   ├── input-error.blade.php
+│       │   ├── input-label.blade.php
+│       │   ├── modal.blade.php
+│       │   ├── nav-link.blade.php
+│       │   ├── primary-button.blade.php
+│       │   ├── responsive-nav-link.blade.php
+│       │   ├── secondary-button.blade.php
+│       │   ├── sh-sidebar.blade.php
+│       │   ├── t-sidebar.blade.php
+│       │   └── text-input.blade.php
+│       ├── counselor
+│       │   ├── dashboard.blade.php
+│       │   ├── good_moral
+│       │   │   ├── batch.blade.php
+│       │   │   ├── blocked_pdf.blade.php
+│       │   │   ├── certificate.blade.php
+│       │   │   └── index.blade.php
+│       │   ├── incidents
+│       │   │   ├── create.blade.php
+│       │   │   ├── edit.blade.php
+│       │   │   ├── index.blade.php
+│       │   │   ├── qr-print.blade.php
+│       │   │   ├── queue.blade.php
+│       │   │   └── triage.blade.php
+│       │   └── violators
+│       │       ├── index.blade.php
+│       │       └── show.blade.php
+│       ├── dashboard.blade.php
+│       ├── layouts
+│       │   ├── admin.blade.php
+│       │   ├── app.blade.php
+│       │   ├── guest.blade.php
+│       │   ├── navigation.blade.php
+│       │   └── sidebar.blade.php
+│       ├── livewire
+│       │   ├── dss-action-desk.blade.php
+│       │   ├── global-copilot.blade.php
+│       │   └── incident-form.blade.php
+│       ├── profile
+│       │   ├── edit.blade.php
+│       │   └── partials
+│       │       ├── delete-user-form.blade.php
+│       │       ├── update-password-form.blade.php
+│       │       └── update-profile-information-form.blade.php
+│       ├── public
+│       │   └── report-tip.blade.php
+│       ├── school_head
+│       │   ├── behavioral_oversight
+│       │   │   ├── cases.blade.php
+│       │   │   ├── good_moral.blade.php
+│       │   │   ├── index.blade.php
+│       │   │   └── show.blade.php
+│       │   ├── cot
+│       │   │   ├── blank.blade.php
+│       │   │   ├── create.blade.php
+│       │   │   ├── index.blade.php
+│       │   │   └── show.blade.php
+│       │   ├── dashboard.blade.php
+│       │   ├── dll
+│       │   │   ├── index.blade.php
+│       │   │   └── show.blade.php
+│       │   ├── dss
+│       │   │   └── index.blade.php
+│       │   ├── exports
+│       │   │   └── dll_checklist.blade.php
+│       │   ├── inventory
+│       │   │   └── index.blade.php
+│       │   ├── pdf
+│       │   │   └── dss-document.blade.php
+│       │   └── reports
+│       │       └── index.blade.php
+│       ├── teacher
+│       │   ├── behavior
+│       │   │   ├── create.blade.php
+│       │   │   ├── edit.blade.php
+│       │   │   └── index.blade.php
+│       │   ├── clearance
+│       │   │   └── status.blade.php
+│       │   ├── cot
+│       │   │   ├── index.blade.php
+│       │   │   └── show.blade.php
+│       │   ├── dashboard.blade.php
+│       │   ├── discipline
+│       │   │   └── log-incident.blade.php
+│       │   ├── dll
+│       │   │   ├── create.blade.php
+│       │   │   ├── edit.blade.php
+│       │   │   ├── index.blade.php
+│       │   │   ├── partials
+│       │   │   │   └── form.blade.php
+│       │   │   ├── show.blade.php
+│       │   │   └── week.blade.php
+│       │   ├── inventory
+│       │   │   ├── borrow.blade.php
+│       │   │   ├── damage.blade.php
+│       │   │   └── index.blade.php
+│       │   └── portfolio
+│       │       ├── create.blade.php
+│       │       ├── index.blade.php
+│       │       └── upload_seminar.blade.php
+│       └── welcome.blade.php
+├── routes
+│   ├── api.php
+│   ├── auth.php
+│   ├── console.php
+│   └── web.php
+├── structure.txt
+├── tailwind.config.js
+├── tests
+│   ├── Feature
+│   │   ├── Auth
+│   │   │   ├── AuthenticationTest.php
+│   │   │   ├── EmailVerificationTest.php
+│   │   │   ├── PasswordConfirmationTest.php
+│   │   │   ├── PasswordResetTest.php
+│   │   │   ├── PasswordUpdateTest.php
+│   │   │   └── RegistrationTest.php
+│   │   ├── ExampleTest.php
+│   │   └── ProfileTest.php
+│   ├── TestCase.php
+│   └── Unit
+│       └── ExampleTest.php
+├── tracked_complete_blueprint1.txt
+├── tree.php
+└── vite.config.js
